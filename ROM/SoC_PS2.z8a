@@ -34,7 +34,7 @@ setDelay:
 
 setprint:
            ld          de,8918
-           ld          bc,29
+           ld          bc,30
 loopprint:
            call        read_kbd
            cp          41h
@@ -87,7 +87,7 @@ loop2:
            out (01h),a          ; Turn off leds
            out (02h),a
            call read_key0       ; Wait until KEY0 is pressed
-           jr inicio            ; Restart program
+           jP inicio            ; Restart program
 read_key0:
 loop3:
            call delay
@@ -170,13 +170,13 @@ Text2:
            db                   "RONIVON COSTA 2008"
            db                   0
 Text3:
-           db                   " |!#$%&/()=?*`+´ç~^,.;:\<>"
+           db                   "  |!#$%&/()=?*`+´ç~^,.;:\<>"
            db                   0
 Text4:
-           db                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+           db                   "  ABCDEFGHIJKLMNOPQRSTUVWXYZ"
            db                   0
 Text5:
-           db                   "abcdefghijklmnopqrstuvwxyz"
+           db                   "  abcdefghijklmnopqrstuvwxyz"
            db                   0
 Text6:
            db                   "         0123456789"
