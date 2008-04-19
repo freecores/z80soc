@@ -1,14 +1,29 @@
 
-           ld sp,0FFFFh          ; Put Stack on top of memory
+           ld          sp,0FFFFh          ; Put Stack on top of memory
 inicio:
            call        clear
-           ld          de,2033h
-           ld          hl,Text
+           ld          hl,8242
+           ld          de,Text1
            call        printmsg
-           ld          de,205Bh
-           ld          hl,Text2
+           ld          hl,8282
+           ld          de,Text2
            call        printmsg
-
+           call        Border
+           ld          hl,8518
+           ld          de,Text3
+           call        printmsg
+           ld          hl,8598
+           ld          de,Text4
+           call        printmsg
+           ld          hl,8678
+           ld          de,Text5
+           call        printmsg
+           ld          hl,8758
+           ld          de,Text6
+           call        printmsg
+           ld          hl,8798
+           ld          de,Text7
+           call        printmsg
 setDelay:
            in a,(20h)           ; Read SW(7-0)
            ld (0E000h),a         ; Stores delay multiplier
@@ -18,8 +33,8 @@ setDelay:
 
 
 setprint:
-           ld          de,2000h
-           ld          bc,1200
+           ld          de,8918
+           ld          bc,29
 loopprint:
            call        read_kbd
            cp          41h
@@ -115,18 +130,12 @@ printmsg:
 
 ploop:
 
-        ld      a,(hl)
+        ld      a,(de)
         or      a
         ret     z
-        ld      (de),a
+        ld      (hl),a
         inc     hl
         inc     de
-        ;push    hl
-        ;push    de
-        ;call    read_key0
-        ;call    delay
-        ;pop     de
-        ;pop     hl
         jr      ploop
 read_kbd:
          call   delay
@@ -134,9 +143,56 @@ read_kbd:
          or     a
          jr     z,read_kbd
          ret
-Text:
+Border:
+           ld        de,Lineu
+           ld        hl,8437
+           call      printmsg
+           ld        hl,8477
+           ld        a,10
+brdloop:
+           ld        de,Column
+           push      af
+           push      hl
+           call      printmsg
+           pop       hl
+           pop       af
+           ld        bc,40
+           add       hl,bc
+           dec       a
+           jr        nz,brdloop
+           ld        de,Lined
+           call      printmsg
+           ret
+Text1:
            db                   "Z80 SYSTEM ON CHIP"
            db                   0
 Text2:
            db                   "RONIVON COSTA 2008"
+           db                   0
+Text3:
+           db                   " |!#$%&/()=?*`+´ç~^,.;:\<>"
+           db                   0
+Text4:
+           db                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+           db                   0
+Text5:
+           db                   "abcdefghijklmnopqrstuvwxyz"
+           db                   0
+Text6:
+           db                   "         0123456789"
+           db                   0
+Text7:
+           db                   2,3,4,11,12,13,14,18,24,25,26,27,232,233,235,187,188,138,134,135,129,128,1,6,7,8,9,10,29,31
+           db                   0
+Lineu:
+           db                   201,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,187
+           db                   0
+Lined:
+           db                   200,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,188
+           db                   0
+
+Column:
+           db                   186
+           db                   "                              "
+           db                   186
            db                   0
