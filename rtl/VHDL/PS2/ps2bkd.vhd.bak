@@ -93,32 +93,32 @@ begin
     when x"136" => ps2_ascii_code <= x"5e";  -- ^
     when x"14e" => ps2_ascii_code <= x"5f";  -- _    
     when x"00e" => ps2_ascii_code <= x"60";  -- `
-    when x"11c" => ps2_ascii_code <= x"61";  -- a
-    when x"132" => ps2_ascii_code <= x"62";  -- b
-    when x"121" => ps2_ascii_code <= x"63";  -- c
-    when x"123" => ps2_ascii_code <= x"64";  -- d
-    when x"124" => ps2_ascii_code <= x"65";  -- e
-    when x"12b" => ps2_ascii_code <= x"66";  -- f
-    when x"134" => ps2_ascii_code <= x"67";  -- g
-    when x"133" => ps2_ascii_code <= x"68";  -- h
-    when x"143" => ps2_ascii_code <= x"69";  -- i
-    when x"13b" => ps2_ascii_code <= x"6a";  -- j
-    when x"142" => ps2_ascii_code <= x"6b";  -- k
-    when x"14b" => ps2_ascii_code <= x"6c";  -- l
-    when x"13a" => ps2_ascii_code <= x"6d";  -- m
-    when x"131" => ps2_ascii_code <= x"6e";  -- n
-    when x"144" => ps2_ascii_code <= x"6f";  -- o
-    when x"14d" => ps2_ascii_code <= x"70";  -- p
-    when x"115" => ps2_ascii_code <= x"71";  -- q
-    when x"12d" => ps2_ascii_code <= x"72";  -- r
-    when x"11b" => ps2_ascii_code <= x"73";  -- s
-    when x"12c" => ps2_ascii_code <= x"74";  -- t
-    when x"13c" => ps2_ascii_code <= x"75";  -- u
-    when x"12a" => ps2_ascii_code <= x"76";  -- v
-    when x"11d" => ps2_ascii_code <= x"77";  -- w
-    when x"122" => ps2_ascii_code <= x"78";  -- x
-    when x"135" => ps2_ascii_code <= x"79";  -- y
-    when x"11a" => ps2_ascii_code <= x"7a";  -- z
+    when x"01c" => ps2_ascii_code <= x"61";  -- a
+    when x"032" => ps2_ascii_code <= x"62";  -- b
+    when x"021" => ps2_ascii_code <= x"63";  -- c
+    when x"023" => ps2_ascii_code <= x"64";  -- d
+    when x"024" => ps2_ascii_code <= x"65";  -- e
+    when x"02b" => ps2_ascii_code <= x"66";  -- f
+    when x"034" => ps2_ascii_code <= x"67";  -- g
+    when x"033" => ps2_ascii_code <= x"68";  -- h
+    when x"043" => ps2_ascii_code <= x"69";  -- i
+    when x"03b" => ps2_ascii_code <= x"6a";  -- j
+    when x"042" => ps2_ascii_code <= x"6b";  -- k
+    when x"04b" => ps2_ascii_code <= x"6c";  -- l
+    when x"03a" => ps2_ascii_code <= x"6d";  -- m
+    when x"031" => ps2_ascii_code <= x"6e";  -- n
+    when x"044" => ps2_ascii_code <= x"6f";  -- o
+    when x"04d" => ps2_ascii_code <= x"70";  -- p
+    when x"015" => ps2_ascii_code <= x"71";  -- q
+    when x"02d" => ps2_ascii_code <= x"72";  -- r
+    when x"01b" => ps2_ascii_code <= x"73";  -- s
+    when x"02c" => ps2_ascii_code <= x"74";  -- t
+    when x"03c" => ps2_ascii_code <= x"75";  -- u
+    when x"02a" => ps2_ascii_code <= x"76";  -- v
+    when x"01d" => ps2_ascii_code <= x"77";  -- w
+    when x"022" => ps2_ascii_code <= x"78";  -- x
+    when x"035" => ps2_ascii_code <= x"79";  -- y
+    when x"01a" => ps2_ascii_code <= x"7a";  -- z
     when x"154" => ps2_ascii_code <= x"7b";  -- {
     when x"15d" => ps2_ascii_code <= x"7c";  -- |
     when x"15b" => ps2_ascii_code <= x"7d";  -- }
