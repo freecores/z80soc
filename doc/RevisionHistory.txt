@@ -1,0 +1,11 @@
+2008/04/19 - Added complete character set support
+	   - Modified the Z80 demo program format the screen output and input
+
+2008/04/16 - Release of Z80SoC-0.5-DE1-Beta
+- Features:
+	- IO pins access by ports (7segdisplay, leds, switches, push buttons, gpio)
+	- 8 KB VRAM memory mapped
+	- 8 KB ROM
+	- 4 8KB SRAM
+	- Video 40 x 30 Uppercase and Numbers noly
+	- PS/2 keyboard input

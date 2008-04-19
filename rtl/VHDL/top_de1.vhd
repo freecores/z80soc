@@ -9,6 +9,8 @@
 -- Based on the T80 core: http://www.opencores.org/projects.cgi/web/t80
 -- This version developed and tested on: Altera DE1 Development Board
 --
+-- Please, see the RevisionHistory.txt file for complete features and change history.
+--
 -- Peripherals configured (Using Ports):
 --
 --	08 KB Internal ROM	Read		(0x0000h - 0x1FFFh)
@@ -248,8 +250,6 @@ begin
 	HEX3 <= HEX_DISP3;
 	
 	SRAM_ADDR(15 downto 0) <= A - x"4000" when (A >= x"4000" and MReq_n = '0');
-	-- SRAM_ADDR(15 downto 0) <= A - x"4000" when (A >= x"4000" and MReq_n = '0') else A;
-	-- this is bad --> SRAM_ADDR(15 downto 0) <= A - x"4000";
 	SRAM_DQ(15 downto 8) <= (others => 'Z');
 	SRAM_ADDR(17 downto 16) <= "00";
 	SRAM_UB_N <= '1';
@@ -262,12 +262,9 @@ begin
 	SRAM_DQ(7 downto 0) <= DO_CPU when (Wr_n = '0' and MReq_n = '0' and A >= x"4000") else (others => 'Z');
 
 	-- Write into VRAM
-	-- this is almost ok -->vram_wraddress_sig <= A - x"2000" when (A >= x"2000" and A < x"4000" and MReq_n = '0' and IORQ_n = '1');
 	vram_wraddress_sig <= A - x"2000" when (A >= x"2000" and A < x"4000" and MReq_n = '0');
-	-- vram_wraddress_sig <= A - x"2000";
 	vram_wren_sig <= not Wr_n when (A >= x"2000" and A < x"4000" and IORQ_n = '1');
 	vram_data_sig <= DO_CPU  when (Wr_n = '0' and MReq_n = '0' and A >= x"2000" and A < x"4000") else (others => 'Z');
-	-- this is ok --> vram_data_sig <= DO_CPU;
 		
 	-- Input to Z80
 	DI_CPU <= SRAM_DQ(7 downto 0) when (Rd_n = '0' and MReq_n = '0' and A >= x"4000") else 

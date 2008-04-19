@@ -37,7 +37,7 @@ ARCHITECTURE A OF video_80x40 IS
 	signal pixel_sig		: std_logic;
 	signal video_on_sig		: std_logic;
 		
-BEGIN	-- ARQUITECTURE
+BEGIN
 	
 	VGA_R_sig <= "0000";
 	VGA_G_sig <= "0000";
@@ -48,7 +48,7 @@ BEGIN	-- ARQUITECTURE
 	VRAM_ADDR <= (pixel_row_sig(9 downto 4) * "0101000" + pixel_column_sig(9 downto 4));
 	
 	-- Fonts ROM read
-	char_addr_sig 	<= VRAM_DATA - x"40" when (VRAM_DATA <= x"5B") else x"20";
+	char_addr_sig <= VRAM_DATA;
 	font_row_sig(2 downto 0) <= pixel_row_sig(3 downto 1);
 	font_col_sig(2 downto 0) <= pixel_column_sig(3 downto 1);
 	
@@ -72,10 +72,10 @@ BEGIN	-- ARQUITECTURE
 	char_rom_inst : work.char_rom
 		port map (
 			clock				=> pixel_clock_sig,			
-			character_address	=> char_addr_sig(5 downto 0),
+			character_address	=> char_addr_sig,
 			font_row			=> font_row_sig,
 			font_col			=> font_col_sig,
 			rom_mux_output		=> pixel_sig
 	);	
 		
-END A;	-- ARQUITECTURE
+END A;
