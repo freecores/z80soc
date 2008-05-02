@@ -9,8 +9,6 @@
 -- Based on the T80 core: http://www.opencores.org/projects.cgi/web/t80
 -- This version developed and tested on: Altera DE1 Development Board
 --
--- Please, see the RevisionHistory.txt file for complete features and change history.
---
 -- Peripherals configured (Using Ports):
 --
 --	08 KB Internal ROM	Read		(0x0000h - 0x1FFFh)
@@ -209,7 +207,10 @@ architecture rtl of TOP_DE1 is
 	signal D_ROM	: std_logic_vector(7 downto 0);
 
 	signal clk25mhz_sig : std_logic;
-	signal Clk_1hz		: std_logic;
+	signal clk25mhz		: std_logic;
+	signal clk1hz		: std_logic;
+	signal clk10hz		: std_logic;
+	signal clk100hz		: std_logic;
 	
 	signal HEX_DISP0	: std_logic_vector(6 downto 0);
 	signal HEX_DISP1	: std_logic_vector(6 downto 0);
@@ -250,6 +251,8 @@ begin
 	HEX3 <= HEX_DISP3;
 	
 	SRAM_ADDR(15 downto 0) <= A - x"4000" when (A >= x"4000" and MReq_n = '0');
+	-- SRAM_ADDR(15 downto 0) <= A - x"4000" when (A >= x"4000" and MReq_n = '0') else A;
+	-- this is bad --> SRAM_ADDR(15 downto 0) <= A - x"4000";
 	SRAM_DQ(15 downto 8) <= (others => 'Z');
 	SRAM_ADDR(17 downto 16) <= "00";
 	SRAM_UB_N <= '1';
@@ -262,9 +265,12 @@ begin
 	SRAM_DQ(7 downto 0) <= DO_CPU when (Wr_n = '0' and MReq_n = '0' and A >= x"4000") else (others => 'Z');
 
 	-- Write into VRAM
+	-- this is almost ok -->vram_wraddress_sig <= A - x"2000" when (A >= x"2000" and A < x"4000" and MReq_n = '0' and IORQ_n = '1');
 	vram_wraddress_sig <= A - x"2000" when (A >= x"2000" and A < x"4000" and MReq_n = '0');
+	-- vram_wraddress_sig <= A - x"2000";
 	vram_wren_sig <= not Wr_n when (A >= x"2000" and A < x"4000" and IORQ_n = '1');
 	vram_data_sig <= DO_CPU  when (Wr_n = '0' and MReq_n = '0' and A >= x"2000" and A < x"4000") else (others => 'Z');
+	-- this is ok --> vram_data_sig <= DO_CPU;
 		
 	-- Input to Z80
 	DI_CPU <= SRAM_DQ(7 downto 0) when (Rd_n = '0' and MReq_n = '0' and A >= x"4000") else 
@@ -351,9 +357,10 @@ begin
 		NUMBER3 <= NUMBER3_sig;
 		LEDR(7 downto 0) <= LEDR_sig(7 downto 0);
 		LEDG <= LEDG_sig;
-	
+		
 	end process;		
 	
+		
 	-- the following three processes deals with different clock domain signals
 	ps2_process1: process(CLOCK_50)
 	begin
@@ -409,7 +416,7 @@ begin
 			CLOCK_50		=> CLOCK_50,
 			VRAM_DATA		=> vram_q_sig,
 			VRAM_ADDR		=> vram_rdaddress_sig,
-			VRAM_CLOCK		=> VRAM_CLOCK,
+			VRAM_CLOCK		=> clk25mhz,
 			VRAM_WREN		=> vram_rden_sig,
 			VGA_R			=> VGA_R,
 			VGA_G			=> VGA_G,
@@ -420,7 +427,7 @@ begin
 
 	vram8k_inst : work.vram8k PORT MAP (
 		rdaddress	=> vram_rdaddress_sig,
-		rdclock	 	=> not VRAM_CLOCK,
+		rdclock	 	=> not clk25mhz,
 		rden	 	=> vram_rden_sig,
 		q	 		=> vram_q_sig,
 		wraddress	=> vram_wraddress_sig(12 downto 0),
@@ -435,7 +442,19 @@ begin
 			A	=> A,
 			D 	=> D_ROM
 		);
-	
+		
+	clkdiv_inst: clk_div
+	port map (
+		clock_25Mhz				=> clk25mhz,
+		clock_1MHz				=> open,
+		clock_100KHz			=> open,
+		clock_10KHz				=> open,
+		clock_1KHz				=> open,
+		clock_100Hz				=> clk100hz,
+		clock_10Hz				=> clk10hz,
+		clock_1Hz				=> clk1hz
+	);
+		
 	clock_z80_inst : Clock_357Mhz
 		port map (
 			clock_50Mhz		=> CLOCK_50,
@@ -466,6 +485,7 @@ begin
 		keyboard_clk	=> PS2_CLK,
 		keyboard_data	=> PS2_DAT,
 		clock			=> CLOCK_50,
+		clkdelay		=> clk100hz,
 		reset			=> Rst_n_s,
 		read			=> ps2_read,
 		scan_ready		=> ps2_scan_ready,
