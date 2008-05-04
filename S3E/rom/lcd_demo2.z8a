@@ -1,0 +1,46 @@
+
+        ld      a,5AH
+        ld      (2010h),a
+        ld      (3FE0h),a
+        LD      A,38H
+        ld      (2011h),a
+        ld      (3FE1h),a
+        LD      A,30H
+        ld      (2012h),a
+        ld      (3FE2h),a
+        LD      A,20H
+        ld      (2013h),a
+        ld      (3FE3h),a
+        LD      A,53H
+        LD      (2014H),A
+        ld      (3FE4h),a
+        LD      A,6FH
+        LD      (2015H),A
+        ld      (3FE5h),a
+        LD      A,43H
+        LD      (2016H),A
+        ld      (3FE6h),a
+readkey:
+        in      a,(30h)
+        out     (01h),a
+        cp      01H
+        jr      NZ,readkey
+release:
+        in      a,(30h)
+        cp      01h
+        jr      z,release
+kbd0:
+        in      a,(20h)
+        out     (01h),a
+        ld      h,3Fh
+        ld      l,0F0h
+kbd1:
+        in      a,(80h)
+        or      a
+        jr      z,kbd1
+        ld      (hl),a
+        inc     l
+        ld      a,l
+        cp      00
+        jr      nz,kbd1
+        jr      kbd0

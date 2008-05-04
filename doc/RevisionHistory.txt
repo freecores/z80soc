@@ -1,3 +1,5 @@
+2008/05/91 - Spartan 3E port released, although not 100% functional (see README)
+
 2008/05/01 - Added Caps lock support. Upper and lower case characters are now supported for keyboard input.
 
 2008/04/19 - Added complete character set support
