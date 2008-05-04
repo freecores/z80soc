@@ -103,7 +103,7 @@ Hope you enjoy.
 TO-DO:
 ----
 
-- (done)Expand the character sets (this versions have only uppercase letters and numbers)
+- Expand the character sets (this versions have only uppercase letters and numbers)
 - 80x40 Video display
 - Serial communication
 - Monitor program to allow download of programs by serial communication
