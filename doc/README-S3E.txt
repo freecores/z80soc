@@ -1,13 +1,10 @@
-Z80 Computer on DE1 Development board
+Z80 Computer on Spartan 3E Starter Kit
 
 Arquitecture
 ------------
 
 
-SW9 	- Reserved - Reset
-SW8 	- Reserved
-LEDR9 	- Reserved
-LEDR8 	- Reserved
+SW3 	- Reserved - Reset
 
 Memory
 ------
