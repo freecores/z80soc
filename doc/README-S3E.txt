@@ -3,14 +3,14 @@ Z80 Computer on Spartan 3E Starter Kit
 Arquitecture
 ------------
 
-
-SW3 	- Reserved - Reset
+Button West (left) - Reserved - Reset
 
 Memory
 ------
 0000H - 01FFH - ROM		(0 	- 8191)
 2000H - 27FFH - VIDEO RAM	(8192  	- 10239)
 3FE0H - 3FFFH - LCD Video RAM   (16352 	- 16383)
+4000H - 7FFFH - RAM memory      (16384 	- 32763)
 
 IO
 --
@@ -24,14 +24,6 @@ Inputs
 20H	- SW(3-0)
 
 30H	- KEY(3-0)
-
-LCD
----
-3FE0H	- 3FFFh - LCD video memory (32 characters)
-
-Video
------
-2000H	- 27FFH	- Video RAM Memory
 
 Keyboard
 --------
@@ -55,11 +47,17 @@ The program will show how to use:
 	Leds
 	LCD
 
-The ROM provided will wait for key East of the S3E to proceed.
-Then, will show the keys type in the keyboard on the second line of the LCD.
-The Switches will be displayed in the LEDS when a key is pressed in the keyboard.
+The program starts waiting for keys to be typed in the keyboard.
+The characters are shown on the 40x30 video (VGA).
+If "A" is pressed, then the program starts another routine,
+that will write bytes into RAM. After 255 bytes are written,
+the bytes are read sequencially and the byte read displayed in the leds (binary format).
+When finished, waits for KEY0 (East on S3E board) and then restart again.
 
-Key West on the S3E will reset the system.
+The switches (4-0) are used as input to calculate delays. Try
+changing these switches to speed up ou slow down the leds. It only
+takes effect after a Z80 reset. 
+To reset the Z80, use Key West (left push button).
 
 Hope you enjoy.
 
