@@ -1,0 +1,208 @@
+
+           ld          sp,7FFFh          ; Put Stack on top of memory
+inicio:
+           ld          a,0AAh
+           out         (01h),a
+           ld          hl,3FE0h
+           ld          de,lcdtxt
+           call        printmsg
+           call        clear
+           ld          hl,2032h
+           ld          de,Text1
+           call        printmsg
+           ;call        read_key0
+           ld          hl,205Ah
+           ld          de,Text2
+           call        printmsg
+           ;call        read_key0
+           call        Border
+           ;call        read_key0
+           ld          hl,2146h
+           ld          de,Text3
+           call        printmsg
+           ;call        read_key0
+           ld          hl,2196h
+           ld          de,Text4
+           call        printmsg
+           ;call        read_key0
+           ld          hl,21E6h
+           ld          de,Text5
+           call        printmsg
+           ;call        read_key0
+           ld          hl,236h
+           ld          de,Text6
+           call        printmsg
+           ;call        read_key0
+           ld          hl,225Eh
+           ld          de,Text7
+           call        printmsg
+           ;call        read_key0
+setDelay:
+
+           in a,(20h)           ; Read SW(7-0)
+           ld (7E00h),a         ; Stores delay multiplier
+                                ; to be used in Delay routine
+                                ; This value it is set only when
+                                ; Z80 is reset
+
+
+setprint:
+           ld          de,8918
+           ld          b,30
+loopprint:
+           call        read_kbd
+           cp          41h
+           jr          z,go_on
+           out         (01h),a
+           ld          (de),a
+           inc         de
+           djnz        loopprint
+           jr          setprint
+go_on:
+           ld hl,4000h          ; RAM Address
+           ld a,0               ; Value to store in memory
+loop1:
+           ld (hl),a            ; Store A into Memory (HL)
+           inc hl               ; Point to next memory location
+           inc a                ; Add 1 to value to store in memory
+           jr nz,loop1          ; If A not equal 0 continue loop1
+                                ; When A=FFh, and we make A=A+1 ...
+                                ; A becomes 100h
+                                ; But, A is an 8 bits register, and
+                                ; can only store the two last hex digits,
+                                ; that is, 8 bits.
+           ld          a,1
+           out         (01h),a
+           call        delay
+           call        delay
+           call        delay
+           call        read_key0       ; Wait until KEY0 is pressed
+           call        delay
+           call        read_key0
+                                ;
+           ld hl,4000h          ; Get back the start RAM address
+loop2:
+           ld a,(hl)            ; Read back the values stored in loop1
+           out (01h),a          ; Send to Green Leds
+           call delay           ; Call sub-routine to delay some time
+           inc hl               ; Add 1 to the memory location
+           ld a,(hl)            ; Read the value in the memory
+           cp 0FFh               ; check if equal 255
+           jr nz,loop2          ; If not equal 255, continue loop2
+                                ; end of First execution
+           ld a,00h             ;
+           out (01h),a          ; Turn off leds
+           call read_key0       ; Wait until KEY0 is pressed
+           jP inicio            ; Restart program
+read_key0:
+loop3:
+           call delay
+           in a,(30h)           ; Read KEYs (all 4 KEYs)
+           out (01h),a
+           cp 01h               ; check if returns "00001110"
+           jr nz,loop3          ; KEY0 not pressed, continue checking
+           ret                  
+iodelay:
+           ld a,(7E00h)         ; Read the number of times to loop
+loop4:
+           dec a                ; Start counting backwards
+           jr nz,loop4          ; If A greather than 0, continue loop
+           ret                  ; return to calling program
+delay:
+           ld a,(7E00h)         ; Read the delay mulpitplier
+loop5:
+           PUSH af
+           ld a,ffh             ; Every delay has at least 255 loops
+loop6:
+           dec a                ; Start counting backwards
+           jr nz,loop6          ; If A greather than 0, continue loop
+           pop af               ; Get multiplier back
+           dec a                ;
+           jr nz,loop5
+           ret                  ; return to calling program
+clear:
+        ld      hl,2000h
+        ld      de,1200
+clean_loop:
+        ld      a,20h
+        ld      (hl),a
+        inc     hl
+        dec     de
+        ld      a,d
+        or      e
+        jr      nz,clean_loop
+        ret
+printmsg:
+
+ploop:
+
+        ld      a,(de)
+        or      a
+        ret     z
+        ld      (hl),a
+        inc     hl
+        inc     de
+        jr      ploop
+read_kbd:
+         call   delay
+         in     a,(80h)
+         or     a
+         jr     z,read_kbd
+         ret
+Border:
+           ld        de,Lineu
+           ld        hl,20F5h
+           call      printmsg
+           ld        hl,211Dh
+           ld        a,10
+brdloop:
+           ld        de,Column
+           push      af
+           push      hl
+           call      printmsg
+           pop       hl
+           pop       af
+           ld        bc,40
+           add       hl,bc
+           dec       a
+           jr        nz,brdloop
+           ld        de,Lined
+           call      printmsg
+           ret
+Text1:
+           db                   "Z80 SYSTEM ON CHIP"
+           db                   0
+Text2:
+           db                   "RONIVON COSTA 2008"
+           db                   0
+Text3:
+           db                   "  |!#$%&/()=?*`+´ç~^,.;:\<>"
+           db                   0
+Text4:
+           db                   "  ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+           db                   0
+Text5:
+           db                   "  abcdefghijklmnopqrstuvwxyz"
+           db                   0
+Text6:
+           db                   "         0123456789"
+           db                   0
+Text7:
+           db                   2,3,4,11,12,13,14,18,24,25,26,27,232,233,235,187,188,138,134,135,129,128,1,6,7,8,9,10,29,31
+           db                   0
+Lineu:
+           db                   201,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,187
+           db                   0
+Lined:
+           db                   200,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,205,188
+           db                   0
+
+Column:
+           db                   186
+           db                   "                              "
+           db                   186
+           db                   0
+lcdtxt:
+           db                   "   Z80 SYSTEM   "
+           db                   " RONIVON  COSTA "
+           db                   0
