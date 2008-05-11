@@ -2064,7 +2064,7 @@ begin
              when "11111111101" => douta <= "00000000";
              when "11111111110" => douta <= "00000000";
              when "11111111111" => douta <= "00000000";
-             when others => douta <= "00000000";
+             when others => douta <= "ZZZZZZZZ";
         end case;
  end if;
 end process;

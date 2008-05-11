@@ -1,31 +1,33 @@
 -------------------------------------------------------------------------------------------------
 -- Z80_Soc (Z80 System on Chip)
 -- 
--- Version 0.5 Beta
+-- Version 0.5 Beta Spartan 3E
 --
 -- Developer: Ronivon Candido Costa
 -- Release Date: 2008 / 04 / 16
 --
 -- Based on the T80 core: http://www.opencores.org/projects.cgi/web/t80
--- This version developed and tested on: Altera DE1 Development Board
+-- This version developed and tested on: Diligent Spartan 3E
 --
 -- Peripherals configured (Using Ports):
 --
---	08 KB Internal ROM	Read		(0x0000h - 0x1FFFh)
---	08 KB INTERNAL VRAM	Write		(0x2000h - 0x3FFFh)
--- 	48 KB External SRAM	Read/Write	(0x4000h - 0xFFFFh)
---	08 Green Leds			Out		(Port 0x01h)
---	08 Red Leds				Out		(Port 0x02h)
---	04 Seven Seg displays	Out		(Ports 0x10h and 0x11h)
---	36 Pins GPIO0 			In/Out	(Ports 0xA0h, 0xA1h, 0xA2h, 0xA3h, 0xA4h, 0xC0h)
---	36 Pins GPIO1 			In/Out	(Ports 0xB0h, 0xB1h, 0xB2h, 0xB3h, 0xB4h, 0xC1h)
---	08 Switches				In		(Port 0x20h)
---	04 Push buttons			In		(Port 0x30h)
---	PS/2 keyboard 			In		(Port 0x80h)
---	Video Out (VGA)			Out		(0x2000h - 0x24B0)
+--	08 KB Internal ROM	Read			(0x0000h - 0x1FFFh)
+--	02 KB INTERNAL VRAM	Write			(0x2000h - 0x27FFh)
+-- 16 KB INTERNAL	RAM	Read/Write	(0x4000h - 0xFFFFh)
+--	08 Green Leds			Out			(Port 0x01h)
+--	01 LCD display			Out			(0x3FE0 x 0x3FFF)
+--	04 Switches				In				(Port 0x20h)
+--	04 Push buttons		In				(Port 0x30h)
+--	PS/2 keyboard 			In				(Port 0x80h)
+--	Video Out (VGA)		Out			(0x2000h - 0x24B0)
 --
 --
 --  Revision history:
+--
+-- 2008/05/11 - Fixed access to RAM and VRAM,
+--              Released same ROM version for DE1 and S3E
+--
+-- 2008/05/01 - Added LCD support for Spartan 3E
 --
 -- 2008/04(21 - Ported to Spartan 3E
 --
@@ -33,7 +35,9 @@
 --  2008/04/16 - Release Version 0.5-DE1-Beta
 --
 -- TO-DO:
--- 	- Monitor program to introduce Z80 Assmebly codes and run
+-- - Implement hardware control for the Rotary knob
+-- - Implement hardware control for the A/D and IO pins
+-- - Monitor program to introduce Z80 Assmebly codes and run
 --	- Serial communication, to download assembly code from PC
 --	- Add hardware support for 80x40 Video out
 --	- SD/MMC card interface to read/store data and programs
@@ -80,12 +84,62 @@ entity Z80SOC_TOP is
     VGA_G,                                              -- Green[3:0]
     VGA_B : out std_logic;									   -- Blue[3:0]
 	 SF_D  : out std_logic_vector(3 downto 0);
-	 LCD_E, LCD_RS, LCD_RW, SF_CE0 : out std_logic 
+	 LCD_E, LCD_RS, LCD_RW, SF_CE0 : out std_logic;
+	 AP	: out std_logic_vector(15 downto 0);
+	 DI	: out std_logic_vector(7 downto 0);
+	 DO	: out std_logic_vector(7 downto 0);
+	 WR	: out  std_logic;
+	 RD	: out std_logic;
+	 MR	: out std_logic;
+	 IQ	: out std_logic	
 );
 end Z80SOC_TOP;
 
 architecture rtl of Z80SOC_TOP is
 
+	component T80se
+	generic(
+		Mode : integer := 0;	-- 0 => Z80, 1 => Fast Z80, 2 => 8080, 3 => GB
+		T2Write : integer := 1;	-- 0 => WR_n active in T3, /=0 => WR_n active in T2
+		IOWait : integer := 1	-- 0 => Single cycle I/O, 1 => Std I/O cycle
+	);
+	port(
+		RESET_n	: in std_logic;
+		CLK_n		: in std_logic;
+		CLKEN		: in std_logic;
+		WAIT_n	: in std_logic;
+		INT_n		: in std_logic;
+		NMI_n		: in std_logic;
+		BUSRQ_n	: in std_logic;
+		M1_n		: out std_logic;
+		MREQ_n	: out std_logic;
+		IORQ_n	: out std_logic;
+		RD_n		: out std_logic;
+		WR_n		: out std_logic;
+		RFSH_n	: out std_logic;
+		HALT_n	: out std_logic;
+		BUSAK_n	: out std_logic;
+		A			: out std_logic_vector(15 downto 0);
+		DI			: in std_logic_vector(7 downto 0);
+		DO			: out std_logic_vector(7 downto 0)
+	);
+	end component;
+
+	component sram16k
+		port (
+		addr	: IN std_logic_VECTOR(13 downto 0);
+		clk	: IN std_logic;
+		din	: IN std_logic_VECTOR(7 downto 0);
+		dout	: OUT std_logic_VECTOR(7 downto 0);
+		we		: IN std_logic);
+	end component;
+
+	component Clock_357Mhz
+	PORT (
+		clock_50Mhz				: IN	STD_LOGIC;
+		clock_357Mhz			: OUT	STD_LOGIC);
+	end component;
+	
 	component clk_div
 	PORT
 	(
@@ -99,96 +153,67 @@ architecture rtl of Z80SOC_TOP is
 		clock_1Hz				: OUT	STD_LOGIC);
 	end component;
 	
-	component T80s
-	generic(
-		Mode : integer := 0);
-	port (
-		RESET_n		: in std_logic;
-		CLK_n		: in std_logic;
-		WAIT_n		: in std_logic;
-		INT_n		: in std_logic;
-		NMI_n		: in std_logic;
-		BUSRQ_n		: in std_logic;
-		M1_n		: out std_logic;
-		MREQ_n		: out std_logic;
-		IORQ_n		: out std_logic;
-		RD_n		: out std_logic;
-		WR_n		: out std_logic;
-		RFSH_n		: out std_logic;
-		HALT_n		: out std_logic;
-		BUSAK_n		: out std_logic;
-		A			: out std_logic_vector(15 downto 0);
-		DI			: in std_logic_vector(7 downto 0);
-		DO			: out std_logic_vector(7 downto 0));
-	end component;
-
 	component lcd
 	port(
-		clk, reset : in std_logic;
-		SF_D : out std_logic_vector(3 downto 0);
+		clk, reset 							: in std_logic;
+		SF_D 									: out std_logic_vector(3 downto 0);
 		LCD_E, LCD_RS, LCD_RW, SF_CE0 : out std_logic;
-		lcd_addr	: out std_logic_vector(4 downto 0);
-		lcd_char	: in std_logic_vector(7 downto 0));
+		lcd_addr								: out std_logic_vector(4 downto 0);
+		lcd_char								: in std_logic_vector(7 downto 0));
 	end component;
 
 	component lcdvram
 	port (
-		addra: IN std_logic_VECTOR(4 downto 0);
-		addrb: IN std_logic_VECTOR(4 downto 0);
-		clka: IN std_logic;
-		clkb: IN std_logic;
-		dina: IN std_logic_VECTOR(7 downto 0);
-		doutb: OUT std_logic_VECTOR(7 downto 0);
-		wea: IN std_logic);
+		addra	: IN std_logic_VECTOR(4 downto 0);
+		addrb	: IN std_logic_VECTOR(4 downto 0);
+		clka	: IN std_logic;
+		clkb	: IN std_logic;
+		dina	: IN std_logic_VECTOR(7 downto 0);
+		doutb	: OUT std_logic_VECTOR(7 downto 0);
+		wea	: IN std_logic);
 	end component;
 
 	component rom
 	port (
-		clk	: in std_logic;
-		addr	: in std_logic_vector(12 downto 0);
-		dout	: out std_logic_vector(7 downto 0));
-	end component;
-
-	component Clock_357Mhz
-	PORT (
-		clock_50Mhz				: IN	STD_LOGIC;
-		clock_357Mhz			: OUT	STD_LOGIC);
+		Clk	: in std_logic;
+		A		: in std_logic_vector(11 downto 0);
+		D		: out std_logic_vector(7 downto 0));
 	end component;
 	
 	component ps2kbd
 	PORT (	
 			keyboard_clk	: inout std_logic;
 			keyboard_data	: inout std_logic;
-			clock			: in std_logic;
-			clkdelay		: in std_logic;
-			reset			: in std_logic;
-			read			: in std_logic;
+			clock				: in std_logic;
+			clkdelay			: in std_logic;
+			reset				: in std_logic;
+			read				: in std_logic;
 			scan_ready		: out std_logic;
 			ps2_ascii_code	: out std_logic_vector(7 downto 0));
 	end component;
 	 
-component vram
-	port (
-	addra: IN std_logic_VECTOR(10 downto 0);
-	addrb: IN std_logic_VECTOR(10 downto 0);
-	clka: IN std_logic;
-	clkb: IN std_logic;
-	dina: IN std_logic_VECTOR(7 downto 0);
-	doutb: OUT std_logic_VECTOR(7 downto 0);
-	wea: IN std_logic);
-end component;
+	component vram
+		port (
+		addra	: IN std_logic_VECTOR(10 downto 0);
+		addrb	: IN std_logic_VECTOR(10 downto 0);
+		clka	: IN std_logic;
+		clkb	: IN std_logic;
+		dina	: IN std_logic_VECTOR(7 downto 0);
+		doutb	: OUT std_logic_VECTOR(7 downto 0);
+		wea	: IN std_logic);
+	end component;
 
-	COMPONENT video_80x40
-	PORT(	CLOCK_50		: IN STD_LOGIC;
-			VRAM_DATA		: IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-			VRAM_ADDR		: OUT STD_LOGIC_VECTOR(12 DOWNTO 0);
-			VRAM_CLOCK		: OUT STD_LOGIC;
-			VRAM_WREN		: OUT STD_LOGIC;
+	COMPONENT video
+	PORT(	CLOCK_25		: IN STD_LOGIC;
+			VRAM_DATA	: IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+			VRAM_ADDR	: OUT STD_LOGIC_VECTOR(12 DOWNTO 0);
+			VRAM_CLOCK	: OUT STD_LOGIC;
+			VRAM_WREN	: OUT STD_LOGIC;
 			VGA_R,
 			VGA_G,
 			VGA_B			: OUT STD_LOGIC;
 			VGA_HS,
-			VGA_VS			: OUT STD_LOGIC);
+			VGA_VS		: OUT STD_LOGIC);
 	END COMPONENT;
 
 	signal MREQ_n	: std_logic;
@@ -200,29 +225,32 @@ end component;
 	signal Clk_Z80	: std_logic;
 	signal DI_CPU	: std_logic_vector(7 downto 0);
 	signal DO_CPU	: std_logic_vector(7 downto 0);
-	signal A		: std_logic_vector(15 downto 0);
+	signal A			: std_logic_vector(15 downto 0);
 	signal One		: std_logic;
 	
 	signal D_ROM	: std_logic_vector(7 downto 0);
 
-	signal clk25mhz_sig : std_logic;
+	signal clk25mhz		: std_logic;
 	signal clk100hz		: std_logic;
-	signal clk10hz		: std_logic;
-	signal clk1hz		: std_logic;
+	signal clk10hz			: std_logic;
+	signal clk1hz			: std_logic;
 
-	signal vram_addra_sig		: std_logic_vector(15 downto 0);
-	signal vram_addrb_sig		: std_logic_vector(15 downto 0);
-	signal vram_addrb_sigv		: std_logic_vector(15 downto 0);
-	signal vram_dina_sig			: std_logic_vector(7 downto 0);
-	signal vram_dinb_sig			: std_logic_vector(7 downto 0);
-	signal vram_douta_sig		: std_logic_vector(7 downto 0);
-	signal vram_doutb_sig		: std_logic_vector(7 downto 0);
-	signal vram_doutb_sigv		: std_logic_vector(7 downto 0);
-	signal vram_wea_sig			: std_logic;
-	signal vram_web_sig			: std_logic;
-	signal vram_clka_sig			: std_logic;
-	signal vram_clkb_sig			: std_logic;
-	signal vram_clkb_sigv			: std_logic;
+	signal vram_addra		: std_logic_vector(15 downto 0);
+	signal vram_addrb		: std_logic_vector(15 downto 0);
+	signal vram_dina			: std_logic_vector(7 downto 0);
+	signal vram_dinb			: std_logic_vector(7 downto 0);
+	signal vram_douta		: std_logic_vector(7 downto 0);
+	signal vram_doutb		: std_logic_vector(7 downto 0);
+	signal vram_wea			: std_logic;
+	signal vram_web			: std_logic;
+	signal vram_clka			: std_logic;
+	signal vram_clkb			: std_logic;
+	
+	-- sram signals
+	signal sram_addr		: std_logic_vector(15 downto 0);
+	signal sram_din		: std_logic_vector(7 downto 0);
+	signal sram_dout		: std_logic_vector(7 downto 0);
+	signal sram_we			: std_logic;
 	
 	-- LCD signals
 	signal lcd_wea			: std_logic;
@@ -245,64 +273,30 @@ end component;
 begin
 	
 	Rst_n_s <= not KEY(3);
-
-	writevram: process(Clk_Z80)
-	begin
-		if Clk_Z80'event and Clk_Z80 = '1' then	
-			if A >= x"2000" and A <= x"27FF" then
-				vram_addra_sig <= A - x"2000";
-				if Wr_n = '0' and MReq_n = '0' then
-					vram_dina_sig <= DO_CPU;
-					vram_wea_sig <= '0';
-				else
-					vram_wea_sig <= '1';
-				end if;
-			else
-				vram_wea_sig <= '1';
-			end if;
-		end if;
-	end process;
 	
-	lcd_process: process(Clk_Z80)
-	begin	
-		if Clk_Z80'event and Clk_Z80 = '1' then
-			if A >= x"3FE0" and A < x"4000" then
-				if MReq_n = '0' and Wr_n = '0' then
-					lcd_wea <= '0';
-					lcd_addra <= A - x"3FE0";
-					lcd_dina <= DO_CPU;
-				else
-					lcd_wea <= '1';
-				end if;
-			else
-				lcd_wea <= '1';
-		  end if;
-		end if;
-	end process;
+	LEDG <= DO_CPU when (IORQ_n = '0' and Wr_n = '0' and A(7 downto 0) = x"01");
 	
-	DI_CPU <= D_ROM when (Rd_n = '0' and MReq_n = '0' and A < x"2000") else
+--	Write into VRAM
+	vram_addra <= A - x"2000" when (A >= x"2000" and A < x"2800");
+	vram_wea <= '0' when (A >= x"2000" and A < x"2800" and Wr_n = '0' and MReq_n = '0') else '1';
+	vram_dina <= DO_CPU when (A >= x"2000" and A < x"2800" and Wr_n = '0' and MReq_n = '0');
+	
+-- Write into LCD video ram
+	lcd_addra <= A - x"3FE0" when (A >= x"3FE0" and A < x"4000" and MReq_n = '0');
+	lcd_wea <= '0' when (A >= x"3FE0" and A < x"4000" and Wr_n = '0' and MReq_n = '0') else '1';
+	lcd_dina <= DO_CPU when (A >= x"3FE0" and A < x"4000" and Wr_n = '0' and MReq_n = '0');
+	
+-- Write into SRAM
+	sram_addr <= A - x"4000" when (A >= x"4000" and A <= x"7FFF");
+	sram_we <= '0' when (A >= x"4000" and A <= x"7FFF" and Wr_n = '0' and MReq_n = '0') else '1';
+	sram_din <= DO_CPU when (A >= x"4000" and A <= x"7FFF" and Wr_n = '0' and MReq_n = '0');
+			
+	DI_CPU <= sram_dout when (Rd_n = '0' and MReq_n = '0' and A >= x"4000") else
+			D_ROM when (Rd_n = '0' and MReq_n = '0' and A < x"2000") else
 			("0000" & SW) when (IORQ_n = '0' and Rd_n = '0' and A(7 downto 0) = x"20") else
 			("0000" & KEY) when (IORQ_n = '0' and Rd_n = '0' and A(7 downto 0) = x"30") else
-			ps2_ascii_reg when (IORQ_n = '0' and Rd_n = '0' and A(7 downto 0) = x"80");
-		
-	-- Process to latch leds and hex displays
-	process(Clk_Z80)
-	variable LEDG_sig		: std_logic_vector(7 downto 0);
-	
-	begin	
-		
-		if Clk_Z80'event and Clk_Z80 = '1' then
-		  if IORQ_n = '0' and Wr_n = '0' then
-			-- LEDG
-			if A(7 downto 0) = x"01" then
-				LEDG_sig := DO_CPU;
-			end if;
-		  end if;
-		end if;	
-		
-		-- Latches the signals
-		LEDG <= LEDG_sig;
-	end process;		
+			ps2_ascii_reg when (IORQ_n = '0' and Rd_n = '0' and A(7 downto 0) = x"80") else
+			"ZZZZZZZZ";
 	
 	-- the following three processes deals with different clock domain signals
 	ps2_process1: process(CLOCK_50)
@@ -330,9 +324,8 @@ begin
 		end if;
 	end process;
 	
-	
 	One <= '1';
-	z80_inst: T80s
+	z80_inst: T80se
 		port map (
 			M1_n => open,
 			MREQ_n => MReq_n,
@@ -348,17 +341,18 @@ begin
 			BUSRQ_n => One,
 			BUSAK_n => open,
 			CLK_n => Clk_Z80,
+			CLKEN => One,
 			A => A,
 			DI => DI_CPU,
 			DO => DO_CPU
 		);
-		  
-	vga80x40_inst: video_80x40 port map (
-			CLOCK_50			=> CLOCK_50,
-			VRAM_DATA		=> vram_doutb_sig,
-			VRAM_ADDR		=> vram_addrb_sig(12 downto 0),
-			VRAM_CLOCK		=> vram_clkb_sig,
-			VRAM_WREN		=> vram_web_sig,
+		
+	video_out_inst: video port map (
+			CLOCK_25			=> clk25mhz,
+			VRAM_DATA		=> vram_doutb,
+			VRAM_ADDR		=> vram_addrb(12 downto 0),
+			VRAM_CLOCK		=> vram_clkb,
+			VRAM_WREN		=> vram_web,
 			VGA_R				=> VGA_R,
 			VGA_G				=> VGA_G,
 			VGA_B				=> VGA_B,
@@ -368,19 +362,19 @@ begin
 			
 	vram_inst: vram port map (
 		clka 		=> Clk_Z80,
-		clkb		=> vram_clkb_sig,
-      wea    	=> vram_wea_sig,
-      addra		=> vram_addra_sig(10 downto 0),
-      addrb		=> vram_addrb_sig(10 downto 0),
-      dina   	=> vram_dina_sig,
-		doutb		=> vram_doutb_sig
+		clkb		=> vram_clkb,
+      wea    	=> vram_wea,
+      addra		=> vram_addra(10 downto 0),
+      addrb		=> vram_addrb(10 downto 0),
+      dina   	=> vram_dina,
+		doutb		=> vram_doutb
 	);
 			
 	rom_inst: rom
 		port map (
-			clk => Clk_Z80,
-			addr	=> A(12 downto 0),
-			dout 	=> D_ROM
+			Clk => Clk_Z80,
+			A	=> A(11 downto 0),
+			D 	=> D_ROM
 		);
 
 	ps2_kbd_inst : ps2kbd PORT MAP (
@@ -394,23 +388,16 @@ begin
 		ps2_ascii_code	=> ps2_ascii_sig
 	);
 	
-	
-	process (CLOCK_50)
+	clk25mhz_proc: process (CLOCK_50)
    begin
 		if CLOCK_50'event and CLOCK_50 = '1' then
-        clk25mhz_sig <= not clk25mhz_sig;
+        clk25mhz <= not clk25mhz;
 		end if;
    end process;
-
-		clock_z80_inst : Clock_357Mhz
-		port map (
-			clock_50Mhz		=> CLOCK_50,
-			clock_357Mhz	=> Clk_Z80
-	);
 	
    clkdiv_inst: clk_div
 		port map (
-		clock_25Mhz		=> clk25mhz_sig,		
+		clock_25Mhz		=> clk25mhz,		
 		clock_1MHz		=> open,
 		clock_100KHz	=> open,
 		clock_10KHz		=> open,
@@ -418,8 +405,14 @@ begin
 		clock_100Hz		=> clk100hz,	
 		clock_10Hz		=> clk10hz,
 		clock_1Hz		=> clk1hz
-	);	
-
+	);
+	
+	clock_z80_inst : Clock_357Mhz
+	port map (
+		clock_50Mhz		=> CLOCK_50,
+		clock_357Mhz	=> Clk_Z80
+	);
+	
 	lcd_inst: lcd
 	port map (
 		clk			=> CLOCK_50,
@@ -443,5 +436,14 @@ begin
 			doutb => lcd_doutb,
 			wea => lcd_wea
 		);
+
+	ram16k_inst : sram16k
+		port map (
+			addr => sram_addr(13 downto 0),
+			clk => Clk_Z80,
+			din => sram_din,
+			dout => sram_dout,
+			we => sram_we
+	);
 			
 end;

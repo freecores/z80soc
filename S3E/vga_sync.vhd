@@ -5,7 +5,7 @@ use  IEEE.STD_LOGIC_UNSIGNED.all;
 -- Module Generates Video Sync Signals for Video Montor Interface
 -- RGB and Sync outputs tie directly to monitor conector pins
 ENTITY VGA_SYNC IS
-	PORT(	clock_50Mhz							: IN 	STD_LOGIC;
+	PORT(	clock_25Mhz							: IN 	STD_LOGIC;
 			red, green, blue					: IN	STD_LOGIC;
 			red_out, green_out, blue_out		: OUT	STD_LOGIC;
 			horiz_sync_out, vert_sync_out, 
@@ -35,24 +35,16 @@ ARCHITECTURE a OF VGA_SYNC IS
 		
 BEGIN
 
--- PLL below is used to generate the pixel clock frequency
-	process (clock_50Mhz)
-   begin
-		if clock_50Mhz'event and clock_50Mhz = '1' then
-        pixel_clock_int <= not pixel_clock_int;
-		end if;
-   end process;
-
 -- video_on is high only when RGB pixel data is being displayed
 -- used to blank color signals at screen edges during retrace
 video_on_int <= video_on_H AND video_on_V;
 -- output pixel clock and video on for external user logic
-pixel_clock <= pixel_clock_int;
+pixel_clock <= clock_25Mhz;
 video_on <= video_on_int;
 
 PROCESS
 BEGIN
-	WAIT UNTIL(pixel_clock_int'EVENT) AND (pixel_clock_int='1');
+	WAIT UNTIL(clock_25Mhz'EVENT) AND (clock_25Mhz='1');
 
 --Generate Horizontal and Vertical Timing Signals for Video Signal
 -- H_count counts pixels (#pixels across + extra time for sync signals)

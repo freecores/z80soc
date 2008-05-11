@@ -1,4 +1,6 @@
-2008/05/91 - Spartan 3E port released, although not 100% functional (see README)
+2008/05/12 - S3E: Fixed bug in memory access. Vram and ram working, so could release the same rom as DE1 port.
+
+2008/05/04 - Spartan 3E port released, although not 100% functional (see README)
 
 2008/05/01 - Added Caps lock support. Upper and lower case characters are now supported for keyboard input.
 

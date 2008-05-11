@@ -22,14 +22,6 @@ COMPONENT keyboard
 			scan_ready		: OUT	STD_LOGIC);
 END COMPONENT;
 
---signal keyboard_clk		: std_logic;
---signal keyboard_data	: std_logic;
---signal clock			: std_logic;
---signal reset			: std_logic;
---signal read				: std_logic;
---signal scan_ready		: std_logic;
---signal ps2_ascii_code	: std_logic_vector(7 downto 0);
-
 signal scan_code_sig	: std_logic_vector(7 downto 0);
 signal scan_code		: std_logic_vector(11 downto 0);
 signal shift			: std_logic_vector(1 downto 0);
