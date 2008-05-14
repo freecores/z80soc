@@ -1,71 +1,101 @@
 
            ld          sp,7FFFh          ; Put Stack on top of memory
+           ld          hl,lcdtxt
+           ld          de,7000h
+           ld          bc,33
+           ldir
+           
 inicio:
-           ld          a,0AAh
-           out         (01h),a
-           ld          hl,3FE0h
-           ld          de,lcdtxt
-           call        printmsg
            call        clear
-           ld          hl,2032h
-           ld          de,Text1
+           ld          de,8242
+           ld          hl,Text1
            call        printmsg
-           ;call        read_key0
-           ld          hl,205Ah
-           ld          de,Text2
+           ld          de,8282
+           ld          hl,Text2
            call        printmsg
-           ;call        read_key0
            call        Border
-           ;call        read_key0
-           ld          hl,2146h
-           ld          de,Text3
+           ld          de,8518
+           ld          hl,Text3
            call        printmsg
-           ;call        read_key0
-           ld          hl,2196h
-           ld          de,Text4
+           ld          de,8598
+           ld          hl,Text4
            call        printmsg
-           ;call        read_key0
-           ld          hl,21E6h
-           ld          de,Text5
+           ld          de,8678
+           ld          hl,Text5
            call        printmsg
-           ;call        read_key0
-           ld          hl,236h
-           ld          de,Text6
+           ld          de,8758
+           ld          hl,Text6
            call        printmsg
-           ;call        read_key0
-           ld          hl,225Eh
-           ld          de,Text7
+           ld          de,8798
+           ld          hl,Text7
            call        printmsg
-           ;call        read_key0
+           ld          de,8000h
+           ld          hl,7000h
+           call        printmsg
 setDelay:
-
-           in a,(20h)           ; Read SW(7-0)
-           ld (7E00h),a         ; Stores delay multiplier
+           in          a,(20h)           ; Read SW(7-0)
+           ld          (7E00h),a         ; Stores delay multiplier
                                 ; to be used in Delay routine
                                 ; This value it is set only when
                                 ; Z80 is reset
+           ld          (6001h),a
+           ld          a,0ffh
+           ld          (6000h),a
+                                
 
 
 setprint:
            ld          de,8918
            ld          b,30
 loopprint:
+           push        bc
+           push        de
+           ; print message in LCD display
+           ; Check of Rotary Knob is moving
+           call        read_rot
+           ; Is it rotating to the right ?
+           cp          1
+           jr          nz,check_left
+           call        roll_lcd_right
+           ld          a,1
+           jr          printlcd
+
+check_left:
+           ; Is it rotating to the left?
+           cp          2
+           jr          nz,dec_jump
+           call        roll_lcd_left
+           ld          a,128
+printlcd:
+           out         (01h),a
+           ld          de,8000h
+           ld          hl,7000h
+           call        printmsg
+dec_jump:
+           pop         de
+           pop         bc
+           ; Read key form keyboard
            call        read_kbd
+           ; compares to "A"
            cp          41h
            jr          z,go_on
+           ; Show binary key code in LEDS
            out         (01h),a
+           or          a
+           jr          z,loopprint
+           ; Show key on video
            ld          (de),a
            inc         de
            djnz        loopprint
            jr          setprint
 go_on:
-           ld hl,4000h          ; RAM Address
-           ld a,0               ; Value to store in memory
+           ld          hl,4000h          ; RAM Address
+           ld          a,0               ; Value to store in memory
 loop1:
-           ld (hl),a            ; Store A into Memory (HL)
-           inc hl               ; Point to next memory location
-           inc a                ; Add 1 to value to store in memory
-           jr nz,loop1          ; If A not equal 0 continue loop1
+           ld          (hl),a            ; Store A into Memory (HL)
+           inc         hl               ; Point to next memory location
+           inc         a                ; Add 1 to value to store in memory
+           jr          nz,loop1          ; If A not equal 0 continue loop1
                                 ; When A=FFh, and we make A=A+1 ...
                                 ; A becomes 100h
                                 ; But, A is an 8 bits register, and
@@ -74,100 +104,154 @@ loop1:
            ld          a,1
            out         (01h),a
            call        delay
-           call        delay
-           call        delay
            call        read_key0       ; Wait until KEY0 is pressed
            call        delay
            call        read_key0
                                 ;
-           ld hl,4000h          ; Get back the start RAM address
+           ld          hl,4000h          ; Get back the start RAM address
 loop2:
-           ld a,(hl)            ; Read back the values stored in loop1
-           out (01h),a          ; Send to Green Leds
-           call delay           ; Call sub-routine to delay some time
-           inc hl               ; Add 1 to the memory location
-           ld a,(hl)            ; Read the value in the memory
-           cp 0FFh               ; check if equal 255
-           jr nz,loop2          ; If not equal 255, continue loop2
+           ld          a,(hl)            ; Read back the values stored in loop1
+           out         (01h),a          ; Send to Green Leds
+           call        delay           ; Call sub-routine to delay some time
+           inc         hl               ; Add 1 to the memory location
+           ld          a,(hl)            ; Read the value in the memory
+           cp          0FFh               ; check if equal 255
+           jr          nz,loop2          ; If not equal 255, continue loop2
                                 ; end of First execution
-           ld a,00h             ;
-           out (01h),a          ; Turn off leds
-           call read_key0       ; Wait until KEY0 is pressed
-           jP inicio            ; Restart program
+           ld          a,00h             ;
+           out         (01h),a          ; Turn off leds
+           call        read_key0       ; Wait until KEY0 is pressed
+           jP          inicio            ; Restart program
 read_key0:
 loop3:
-           call delay
-           in a,(30h)           ; Read KEYs (all 4 KEYs)
-           out (01h),a
-           cp 01h               ; check if returns "00001110"
-           jr nz,loop3          ; KEY0 not pressed, continue checking
+           call        delay
+           in          a,(30h)           ; Read KEYs (all 4 KEYs)
+           out         (01h),a
+           cp          01h               ; check if returns "00001110"
+           jr          nz,loop3          ; KEY0 not pressed, continue checking
            ret                  
 iodelay:
-           ld a,(7E00h)         ; Read the number of times to loop
+           ld          a,(7E00h)         ; Read the number of times to loop
 loop4:
-           dec a                ; Start counting backwards
-           jr nz,loop4          ; If A greather than 0, continue loop
+           dec         a                ; Start counting backwards
+           jr          nz,loop4          ; If A greather than 0, continue loop
            ret                  ; return to calling program
 delay:
-           ld a,(7E00h)         ; Read the delay mulpitplier
+           ld          a,(7E00h)         ; Read the delay mulpitplier
 loop5:
-           PUSH af
-           ld a,ffh             ; Every delay has at least 255 loops
+           PUSH        af
+           ld          a,0ffh             ; Every delay has at least 255 loops
 loop6:
-           dec a                ; Start counting backwards
-           jr nz,loop6          ; If A greather than 0, continue loop
-           pop af               ; Get multiplier back
-           dec a                ;
-           jr nz,loop5
+           dec         a                ; Start counting backwards
+           jr          nz,loop6          ; If A greather than 0, continue loop
+           pop         af               ; Get multiplier back
+           dec         a                ;
+           jr          nz,loop5
            ret                  ; return to calling program
 clear:
-        ld      hl,2000h
-        ld      de,1200
+           ld          hl,2000h
+           ld          de,1200
 clean_loop:
-        ld      a,20h
-        ld      (hl),a
-        inc     hl
-        dec     de
-        ld      a,d
-        or      e
-        jr      nz,clean_loop
-        ret
+           ld          a,20h
+           ld          (hl),a
+           inc         hl
+           dec         de
+           ld          a,d
+           or          e
+           jr          nz,clean_loop
+           ret
 printmsg:
 
 ploop:
 
-        ld      a,(de)
-        or      a
-        ret     z
-        ld      (hl),a
-        inc     hl
-        inc     de
-        jr      ploop
+           ld          a,(hl)
+           or          a
+           ret         z
+           ld          (de),a
+           inc         hl
+           inc         de
+           jr          ploop
 read_kbd:
-         call   delay
-         in     a,(80h)
-         or     a
-         jr     z,read_kbd
-         ret
+           call        delay
+           in          a,(80h)
+           ret
 Border:
-           ld        de,Lineu
-           ld        hl,20F5h
-           call      printmsg
-           ld        hl,211Dh
-           ld        a,10
+           ld          hl,Lineu
+           ld          de,8437
+           call        printmsg
+           ld          de,8477
+           ld          a,10
 brdloop:
-           ld        de,Column
-           push      af
-           push      hl
-           call      printmsg
-           pop       hl
-           pop       af
-           ld        bc,40
-           add       hl,bc
-           dec       a
-           jr        nz,brdloop
-           ld        de,Lined
-           call      printmsg
+           ld          hl,Column
+           push        hl
+           push        af
+           push        de
+           call        printmsg
+           pop         de
+           pop         af
+           ld          hl,40
+           add         hl,de
+           ld          d,h
+           ld          e,l
+           pop         hl
+           dec         a
+           jr          nz,brdloop
+           ld          hl,Lined
+           call        printmsg
+           ret
+read_rot:
+           ;CALL   DELAY_ROT
+           ;LD     A,0
+           ;RET    NZ
+           CALL        DELAY_MULT
+           LD          A,0
+           RET         NZ
+           IN          A,(70H)
+           RET
+
+DELAY_ROT:
+           LD          A,(6000H)
+           DEC         A
+           LD          (6000H),A
+           RET
+DELAY_MULT:
+           LD          A,(6001H)
+           DEC         A
+           JR          NZ,DLY_M1
+           LD          A,10H
+DLY_M1:
+           LD          (6001H),A
+           RET
+           
+roll_lcd_left:
+           ; save the first char on the left, for every line
+           ld        a,(7000h)
+           ld        (6FFEH),a
+           ld        a,(7010h)
+           ld        (6FFFH),a
+           ld        HL,7001H
+           ld        de,7000h
+           ld        bc,31
+           ldir
+           ld        a,(6FFEh)
+           ld        (700Fh),a
+           ld        a,(6FFFh)
+           ld        (701Fh),a
+           ret
+roll_lcd_right:
+           ; save the first char on the left, for every line
+           ld        a,(700Fh)
+           ld        (6FFEH),a
+           ld        a,(701Fh)
+           ld        (6FFFH),a
+           ld        HL,701EH
+           ld        de,701Fh
+           ld        bc,31
+           lddr
+           ld        a,(6FFEh)
+           ld        (7000h),a
+           ld        a,(6FFFh)
+           ld        (7010h),a
            ret
 Text1:
            db                   "Z80 SYSTEM ON CHIP"

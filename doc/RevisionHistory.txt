@@ -1,4 +1,10 @@
-2008/05/12 - S3E: Fixed bug in memory access. Vram and ram working, so could release the same rom as DE1 port.
+2008/05/14 - Implemented small changes in Rotary knob logic.
+           - Modified ROM to demonstrate rotary function.
+
+2008/05/12 - Added support for the Rotary Knob
+           - Changed RESET to Knob push button. Now, the 4 push buttons are available for user applications.
+
+2008/05/11 - S3E: Fixed bug in memory access. Vram and ram working, so could release the same rom as DE1 port.
 
 2008/05/04 - Spartan 3E port released, although not 100% functional (see README)
 
