@@ -9,20 +9,26 @@
 -- Based on the T80 core: http://www.opencores.org/projects.cgi/web/t80
 -- This version developed and tested on: Diligent Spartan 3E
 --
--- Peripherals configured (Using Ports):
+-- Architecture of z80soc:
+-- Processor: Z80 Processor (T80 core) Runnig at 3.58 Mhz (can be changed)
 --
+-- External devices/resources:
+-- 
 --	08 KB Internal ROM	Read			(0x0000h - 0x1FFFh)
---	02 KB INTERNAL VRAM	Write			(0x2000h - 0x27FFh)
--- 16 KB INTERNAL	RAM	Read/Write	(0x4000h - 0xFFFFh)
+--	02 KB INTERNAL VRAM	Write			(0x2000h - 0x3FFFh)
+-- 16 KB INTERNAL	RAM	Read/Write	(0x4000h - 0x7FFFh)
+--	01 LCD display			Out			(0x8000h	- 0x801Fh)
 --	08 Green Leds			Out			(Port 0x01h)
---	01 LCD display			Out			(0x3FE0 x 0x3FFF)
 --	04 Switches				In				(Port 0x20h)
 --	04 Push buttons		In				(Port 0x30h)
+-- Rotary Knob				In				(Port 0x70h)
 --	PS/2 keyboard 			In				(Port 0x80h)
---	Video Out (VGA)		Out			(0x2000h - 0x24B0)
---
 --
 --  Revision history:
+--
+-- 2008/05/12 - Added support for the Rotary Knob
+--            - ROT_CENTER push button (Knob) reserved for RESET
+--            - The four push buttons are now available for the user (Port 0x30)
 --
 -- 2008/05/11 - Fixed access to RAM and VRAM,
 --              Released same ROM version for DE1 and S3E
@@ -32,10 +38,10 @@
 -- 2008/04(21 - Ported to Spartan 3E
 --
 --	2008/04/17 - Added Video support for 80x40 mode
---  2008/04/16 - Release Version 0.5-DE1-Beta
+--
+-- 2008/04/16 - Release Version 0.5-DE1-Beta
 --
 -- TO-DO:
--- - Implement hardware control for the Rotary knob
 -- - Implement hardware control for the A/D and IO pins
 -- - Monitor program to introduce Z80 Assmebly codes and run
 --	- Serial communication, to download assembly code from PC
@@ -49,25 +55,16 @@ use IEEE.std_logic_arith.all;
 use IEEE.std_logic_unsigned.all;
 
 entity Z80SOC_TOP is
-  generic (
-    swcount		: integer := 4;
-	 keycount	: integer := 4;
-	 ledrcount	: integer := 10;
-	 ledgcount	: integer := 8;
-	 sramdepth	: integer := 16;
-	 dramdepth	: integer := 13;
-	 framdepth	: integer := 25;
-	 vgadepth	: integer := 1);
 	port(
     -- Clocks
     CLOCK_50 : in std_logic;                                    -- 50 MHz
 
     -- Buttons and switches
-    KEY : in std_logic_vector(keycount - 1 downto 0);         -- Push buttons
-    SW : in std_logic_vector(swcount-1 downto 0);          -- Switches
+    KEY : in std_logic_vector(3 downto 0);         -- Push buttons
+    SW : in std_logic_vector(3 downto 0);          -- Switches
 
     -- LED displays
-    LEDG : out std_logic_vector(ledgcount-1 downto 0);       -- Green LEDs
+    LEDG : out std_logic_vector(7 downto 0);       -- Green LEDs
 
     -- RS-232 interface
     -- UART_TXD : out std_logic;                      -- UART transmitter   
@@ -85,13 +82,7 @@ entity Z80SOC_TOP is
     VGA_B : out std_logic;									   -- Blue[3:0]
 	 SF_D  : out std_logic_vector(3 downto 0);
 	 LCD_E, LCD_RS, LCD_RW, SF_CE0 : out std_logic;
-	 AP	: out std_logic_vector(15 downto 0);
-	 DI	: out std_logic_vector(7 downto 0);
-	 DO	: out std_logic_vector(7 downto 0);
-	 WR	: out  std_logic;
-	 RD	: out std_logic;
-	 MR	: out std_logic;
-	 IQ	: out std_logic	
+	 ROT_A, ROT_B, ROT_CENTER : in std_logic	
 );
 end Z80SOC_TOP;
 
@@ -193,9 +184,9 @@ architecture rtl of Z80SOC_TOP is
 	end component;
 	 
 	component vram
-		port (
-		addra	: IN std_logic_VECTOR(10 downto 0);
-		addrb	: IN std_logic_VECTOR(10 downto 0);
+	port (
+		addra	: IN std_logic_VECTOR(12 downto 0);
+		addrb	: IN std_logic_VECTOR(12 downto 0);
 		clka	: IN std_logic;
 		clkb	: IN std_logic;
 		dina	: IN std_logic_VECTOR(7 downto 0);
@@ -204,7 +195,8 @@ architecture rtl of Z80SOC_TOP is
 	end component;
 
 	COMPONENT video
-	PORT(	CLOCK_25		: IN STD_LOGIC;
+	PORT (	
+			CLOCK_25		: IN STD_LOGIC;
 			VRAM_DATA	: IN STD_LOGIC_VECTOR(7 DOWNTO 0);
 			VRAM_ADDR	: OUT STD_LOGIC_VECTOR(12 DOWNTO 0);
 			VRAM_CLOCK	: OUT STD_LOGIC;
@@ -216,6 +208,14 @@ architecture rtl of Z80SOC_TOP is
 			VGA_VS		: OUT STD_LOGIC);
 	END COMPONENT;
 
+	COMPONENT ROT_CTRL
+	PORT (
+		CLOCK				: IN STD_LOGIC;
+		ROT_A				: IN	STD_LOGIC;
+		ROT_B				: IN	STD_LOGIC;
+		DIRECTION		: OUT	STD_LOGIC_VECTOR(1 DOWNTO 0));
+	END COMPONENT;
+	
 	signal MREQ_n	: std_logic;
 	signal IORQ_n	: std_logic;
 	signal RD_n		: std_logic;
@@ -270,31 +270,36 @@ architecture rtl of Z80SOC_TOP is
 	signal ps2_ascii_reg1			: std_logic_vector(7 downto 0);
 	signal ps2_ascii_reg				: std_logic_vector(7 downto 0);
 	
+	-- Rotary Control
+	signal rot_dir     : std_logic_vector(1 downto 0);
+	signal rot_dir_sig : std_logic_vector(1 downto 0);
+	
 begin
 	
-	Rst_n_s <= not KEY(3);
+	Rst_n_s <= not ROT_CENTER;
 	
 	LEDG <= DO_CPU when (IORQ_n = '0' and Wr_n = '0' and A(7 downto 0) = x"01");
 	
 --	Write into VRAM
-	vram_addra <= A - x"2000" when (A >= x"2000" and A < x"2800");
-	vram_wea <= '0' when (A >= x"2000" and A < x"2800" and Wr_n = '0' and MReq_n = '0') else '1';
-	vram_dina <= DO_CPU when (A >= x"2000" and A < x"2800" and Wr_n = '0' and MReq_n = '0');
+	vram_addra <= A - x"2000" when (A >= x"2000" and A <= x"3FFF");
+	vram_wea <= '0' when (A >= x"2000" and A <= x"3FFF" and Wr_n = '0' and MReq_n = '0') else '1';
+	vram_dina <= DO_CPU when (A >= x"2000" and A <= x"3FFF" and Wr_n = '0' and MReq_n = '0');
 	
 -- Write into LCD video ram
-	lcd_addra <= A - x"3FE0" when (A >= x"3FE0" and A < x"4000" and MReq_n = '0');
-	lcd_wea <= '0' when (A >= x"3FE0" and A < x"4000" and Wr_n = '0' and MReq_n = '0') else '1';
-	lcd_dina <= DO_CPU when (A >= x"3FE0" and A < x"4000" and Wr_n = '0' and MReq_n = '0');
+	lcd_addra <= A - x"8000" when (A >= x"8000" and A <= x"801F" and MReq_n = '0');
+	lcd_wea <= '0' when (A >= x"8000" and A <= x"801F" and Wr_n = '0' and MReq_n = '0') else '1';
+	lcd_dina <= DO_CPU when (A >= x"8000" and A <= x"801F" and Wr_n = '0' and MReq_n = '0');
 	
 -- Write into SRAM
 	sram_addr <= A - x"4000" when (A >= x"4000" and A <= x"7FFF");
 	sram_we <= '0' when (A >= x"4000" and A <= x"7FFF" and Wr_n = '0' and MReq_n = '0') else '1';
 	sram_din <= DO_CPU when (A >= x"4000" and A <= x"7FFF" and Wr_n = '0' and MReq_n = '0');
 			
-	DI_CPU <= sram_dout when (Rd_n = '0' and MReq_n = '0' and A >= x"4000") else
-			D_ROM when (Rd_n = '0' and MReq_n = '0' and A < x"2000") else
+	DI_CPU <= sram_dout when (Rd_n = '0' and MReq_n = '0' and A >= x"4000" and A <= x"7FFF") else
+			D_ROM when (Rd_n = '0' and MReq_n = '0' and A <= x"1FFF") else
 			("0000" & SW) when (IORQ_n = '0' and Rd_n = '0' and A(7 downto 0) = x"20") else
 			("0000" & KEY) when (IORQ_n = '0' and Rd_n = '0' and A(7 downto 0) = x"30") else
+			("000000" & rot_dir) when (IORQ_n = '0' and Rd_n = '0' and A(7 downto 0) = x"70") else
 			ps2_ascii_reg when (IORQ_n = '0' and Rd_n = '0' and A(7 downto 0) = x"80") else
 			"ZZZZZZZZ";
 	
@@ -324,6 +329,13 @@ begin
 		end if;
 	end process;
 	
+	rot_process: process(clk100hz)
+	begin
+		if clk100hz'event and clk100hz = '1' then
+			rot_dir <= rot_dir_sig;
+		end if;
+	end process;
+	
 	One <= '1';
 	z80_inst: T80se
 		port map (
@@ -347,7 +359,7 @@ begin
 			DO => DO_CPU
 		);
 		
-	video_out_inst: video port map (
+	video_inst: video port map (
 			CLOCK_25			=> clk25mhz,
 			VRAM_DATA		=> vram_doutb,
 			VRAM_ADDR		=> vram_addrb(12 downto 0),
@@ -360,23 +372,6 @@ begin
 			VGA_VS			=> VGA_VS
 	);
 			
-	vram_inst: vram port map (
-		clka 		=> Clk_Z80,
-		clkb		=> vram_clkb,
-      wea    	=> vram_wea,
-      addra		=> vram_addra(10 downto 0),
-      addrb		=> vram_addrb(10 downto 0),
-      dina   	=> vram_dina,
-		doutb		=> vram_doutb
-	);
-			
-	rom_inst: rom
-		port map (
-			Clk => Clk_Z80,
-			A	=> A(11 downto 0),
-			D 	=> D_ROM
-		);
-
 	ps2_kbd_inst : ps2kbd PORT MAP (
 		keyboard_clk	=> PS2_CLK,
 		keyboard_data	=> PS2_DAT,
@@ -425,7 +420,24 @@ begin
 		lcd_addr		=> lcd_addrb,
 		lcd_char		=> lcd_doutb
 	);
+			
+	rom_inst: rom
+		port map (
+			Clk => Clk_Z80,
+			A	=> A(11 downto 0),
+			D 	=> D_ROM
+		);
 	
+	vram_inst: vram port map (
+		clka 		=> Clk_Z80,
+		clkb		=> vram_clkb,
+      wea    	=> vram_wea,
+      addra		=> vram_addra(12 downto 0),
+      addrb		=> vram_addrb(12 downto 0),
+      dina   	=> vram_dina,
+		doutb		=> vram_doutb
+	);
+
 	lcdvram_inst : lcdvram
 		port map (
 			addra => lcd_addra,
@@ -444,6 +456,14 @@ begin
 			din => sram_din,
 			dout => sram_dout,
 			we => sram_we
+	);
+
+	rotary_inst: ROT_CTRL
+		port map (
+			CLOCK			=> CLOCK_50,
+			ROT_A			=> ROT_A,
+			ROT_B			=> ROT_B,
+			DIRECTION	=> rot_dir_sig
 	);
 			
 end;
