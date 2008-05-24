@@ -2,7 +2,7 @@
 -- Z80 compatible microprocessor core, synchronous top level
 -- Different timing than the original z80
 -- Inputs needs to be synchronous and outputs may glitch
---
+--  
 -- Version : 0242
 --
 -- Copyright (c) 2001-2002 Daniel Wallner (jesus@opencores.org)

@@ -482,10 +482,16 @@ set_global_assignment -name END_TIME "10000 us"
 set_global_assignment -name ADD_DEFAULT_PINS_TO_SIMULATION_OUTPUT_WAVEFORMS OFF
 set_global_assignment -name SMART_RECOMPILE ON
 set_global_assignment -name AUTO_SHIFT_REGISTER_RECOGNITION OFF
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_COLOR 2147039 -section_id Top
+set_global_assignment -name LL_ROOT_REGION ON -section_id "Root Region"
+set_global_assignment -name LL_MEMBER_STATE LOCKED -section_id "Root Region"
+set_instance_assignment -name PARTITION_HIERARCHY no_file_for_top_partition -to | -section_id Top
+set_global_assignment -name VHDL_FILE rtl/VHDL/VIDEO.vhd
+set_global_assignment -name VHDL_FILE rtl/VHDL/t80/T80se.vhd
 set_global_assignment -name VHDL_FILE rtl/VHDL/clk_div.vhd
 set_global_assignment -name VHDL_FILE rtl/VHDL/PS2/KEYBOARD.VHD
 set_global_assignment -name VHDL_FILE rtl/VHDL/PS2/ps2bkd.vhd
-set_global_assignment -name VHDL_FILE rtl/VHDL/VIDEO_80X40.vhd
 set_global_assignment -name VHDL_FILE rtl/vhdl/vga_sync.vhd
 set_global_assignment -name VHDL_FILE rtl/vhdl/CHAR_ROM.VHD
 set_global_assignment -name VHDL_FILE rtl/vhdl/video_PLL.vhd
@@ -494,14 +500,9 @@ set_global_assignment -name VHDL_FILE rtl/vhdl/clock_357mhz.vhd
 set_global_assignment -name VHDL_FILE rtl/vhdl/rom.vhd
 set_global_assignment -name VHDL_FILE rtl/vhdl/top_de1.vhd
 set_global_assignment -name VHDL_FILE rtl/vhdl/decoder_7seg.vhd
-set_global_assignment -name VHDL_FILE rtl/vhdl/t80/T80s.vhd
 set_global_assignment -name VHDL_FILE rtl/vhdl/t80/T80.vhd
 set_global_assignment -name VHDL_FILE rtl/vhdl/t80/T80_ALU.vhd
 set_global_assignment -name VHDL_FILE rtl/vhdl/t80/T80_MCode.vhd
 set_global_assignment -name VHDL_FILE rtl/vhdl/t80/T80_Pack.vhd
 set_global_assignment -name VHDL_FILE rtl/vhdl/t80/T80_Reg.vhd
-set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
-set_global_assignment -name PARTITION_COLOR 2147039 -section_id Top
-set_global_assignment -name LL_ROOT_REGION ON -section_id "Root Region"
-set_global_assignment -name LL_MEMBER_STATE LOCKED -section_id "Root Region"
-set_instance_assignment -name PARTITION_HIERARCHY no_file_for_top_partition -to | -section_id Top
+set_parameter -name CYCLONEII_SAFE_WRITE "\"RESTRUCTURE\"" -to "vram8k:vram8k_inst"
