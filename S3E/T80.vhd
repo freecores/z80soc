@@ -1,6 +1,6 @@
 -- ****
 -- T80(b) core. In an effort to merge and maintain bug fixes ....
---
+-- 
 --
 -- Ver 300 started tidyup. Rmoved some auto_wait bits from 0247 which caused problems
 --

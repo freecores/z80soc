@@ -58,7 +58,7 @@ BEGIN
 	
 	-- Fonts ROM read
 
-	VRAM_WREN <= '0';
+	VRAM_WREN <= '1'; -- port b is always set for read (High)
 	VRAM_CLOCK <= pixel_clock_sig;
 	VRAM_ADDR <= (pixel_row_sig(9 downto 4) * "0101000" + pixel_column_sig(9 downto 4));
 	

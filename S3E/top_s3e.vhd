@@ -1,10 +1,14 @@
 -------------------------------------------------------------------------------------------------
 -- Z80_Soc (Z80 System on Chip)
 -- 
--- Version 0.5 Beta Spartan 3E
+-- Version history:
+-------------------
+-- version 0.6 for Spartan 3E
+-- Release Date: 2008 / 05 / 21
 --
+-- Version 0.5 Beta for Spartan 3E
 -- Developer: Ronivon Candido Costa
--- Release Date: 2008 / 04 / 16
+-- Release Date: 2008 / 05 / 01
 --
 -- Based on the T80 core: http://www.opencores.org/projects.cgi/web/t80
 -- This version developed and tested on: Diligent Spartan 3E
@@ -14,17 +18,26 @@
 --
 -- External devices/resources:
 -- 
---	08 KB Internal ROM	Read			(0x0000h - 0x1FFFh)
---	02 KB INTERNAL VRAM	Write			(0x2000h - 0x3FFFh)
--- 16 KB INTERNAL	RAM	Read/Write	(0x4000h - 0x7FFFh)
---	01 LCD display			Out			(0x8000h	- 0x801Fh)
+--	16 KB Internal ROM	Read			(0x0000h - 0x3FFFh)
+--	08 KB INTERNAL VRAM	Write			(0x4000h - 0x5FFFh)
+--	01 LCD display			Out			(0x7FE0h - 0x7FFFh)
+-- 16 KB INTERNAL RAM	Read/Write	(0x8000h - 0xBFFFh)
 --	08 Green Leds			Out			(Port 0x01h)
 --	04 Switches				In				(Port 0x20h)
 --	04 Push buttons		In				(Port 0x30h)
--- Rotary Knob				In				(Port 0x70h)
+-- 01	Rotary Knob			In				(Port 0x70h)
 --	PS/2 keyboard 			In				(Port 0x80h)
+--	Video write				Out			(Port 0x90h)
 --
 --  Revision history:
+--
+-- 2008/05/20 - Modified RAM layout to support new and future improvements
+--            - Added port 0x90 to write a character to video.
+--            - Cursor x,y automatically updated after writing to port 0x90
+--            - Added port 0x91 for video cursor X
+--            - Added port 0x92 for video cursor Y
+--	           - Updated ROM to demonstrate how to use these new resources
+--            - Changed ROM to support 14 bit addresses (16 Kb)
 --
 -- 2008/05/12 - Added support for the Rotary Knob
 --            - ROT_CENTER push button (Knob) reserved for RESET
@@ -35,11 +48,11 @@
 --
 -- 2008/05/01 - Added LCD support for Spartan 3E
 --
--- 2008/04(21 - Ported to Spartan 3E
+-- 2008/04(21 - Release of Version 0.5-S3E-Beta for Diligent Spartan 3E
 --
---	2008/04/17 - Added Video support for 80x40 mode
+--	2008/04/17 - Added Video support for 40x30 mode
 --
--- 2008/04/16 - Release Version 0.5-DE1-Beta
+-- 2008/04/16 - Release of Version 0.5-DE1-Beta for Altera DE1
 --
 -- TO-DO:
 -- - Implement hardware control for the A/D and IO pins
@@ -51,8 +64,8 @@
 
 library IEEE;
 use IEEE.std_logic_1164.all;
-use IEEE.std_logic_arith.all;
 use IEEE.std_logic_unsigned.all;
+use IEEE.numeric_std.all;
 
 entity Z80SOC_TOP is
 	port(
@@ -125,6 +138,13 @@ architecture rtl of Z80SOC_TOP is
 		we		: IN std_logic);
 	end component;
 
+	component rom
+	port (
+		Clk	: in std_logic;
+		A		: in std_logic_vector(13 downto 0);
+		D		: out std_logic_vector(7 downto 0));
+	end component;
+	
 	component Clock_357Mhz
 	PORT (
 		clock_50Mhz				: IN	STD_LOGIC;
@@ -164,13 +184,6 @@ architecture rtl of Z80SOC_TOP is
 		wea	: IN std_logic);
 	end component;
 
-	component rom
-	port (
-		Clk	: in std_logic;
-		A		: in std_logic_vector(11 downto 0);
-		D		: out std_logic_vector(7 downto 0));
-	end component;
-	
 	component ps2kbd
 	PORT (	
 			keyboard_clk	: inout std_logic;
@@ -183,15 +196,18 @@ architecture rtl of Z80SOC_TOP is
 			ps2_ascii_code	: out std_logic_vector(7 downto 0));
 	end component;
 	 
-	component vram
+	component vram8k
 	port (
-		addra	: IN std_logic_VECTOR(12 downto 0);
-		addrb	: IN std_logic_VECTOR(12 downto 0);
-		clka	: IN std_logic;
-		clkb	: IN std_logic;
-		dina	: IN std_logic_VECTOR(7 downto 0);
-		doutb	: OUT std_logic_VECTOR(7 downto 0);
-		wea	: IN std_logic);
+		addra: IN std_logic_VECTOR(12 downto 0);
+		addrb: IN std_logic_VECTOR(12 downto 0);
+		clka: IN std_logic;
+		clkb: IN std_logic;
+		dina: IN std_logic_VECTOR(7 downto 0);
+		dinb: IN std_logic_VECTOR(7 downto 0);
+		douta: OUT std_logic_VECTOR(7 downto 0);
+		doutb: OUT std_logic_VECTOR(7 downto 0);
+		wea: IN std_logic;
+		web: IN std_logic);
 	end component;
 
 	COMPONENT video
@@ -246,6 +262,11 @@ architecture rtl of Z80SOC_TOP is
 	signal vram_clka			: std_logic;
 	signal vram_clkb			: std_logic;
 	
+	signal vram_douta_reg	: std_logic_vector(7 downto 0);	
+	signal VID_CURSOR		: std_logic_vector(15 downto 0);
+	signal CURSOR_X		    : std_logic_vector(5 downto 0);
+	signal CURSOR_Y		    : std_logic_vector(4 downto 0);
+
 	-- sram signals
 	signal sram_addr		: std_logic_vector(15 downto 0);
 	signal sram_din		: std_logic_vector(7 downto 0);
@@ -274,35 +295,89 @@ architecture rtl of Z80SOC_TOP is
 	signal rot_dir     : std_logic_vector(1 downto 0);
 	signal rot_dir_sig : std_logic_vector(1 downto 0);
 	
-begin
+	signal Z80SOC_VERSION		: std_logic_vector(2 downto 0);   -- "000" = DE1, "001" = S3E
+	signal Z80SOC_STACK			: std_logic_vector(15 downto 0);  -- Should be set to top of (RAM Memory - 1)
 	
+begin
+
+	Z80SOC_VERSION <= "001";		-- "000" = DE1, "001" = S3E
+	Z80SOC_STACK <= x"BFFE"; 		-- Should be set to top of (RAM Memory - 1)	
 	Rst_n_s <= not ROT_CENTER;
 	
-	LEDG <= DO_CPU when (IORQ_n = '0' and Wr_n = '0' and A(7 downto 0) = x"01");
-	
 --	Write into VRAM
-	vram_addra <= A - x"2000" when (A >= x"2000" and A <= x"3FFF");
-	vram_wea <= '0' when (A >= x"2000" and A <= x"3FFF" and Wr_n = '0' and MReq_n = '0') else '1';
-	vram_dina <= DO_CPU when (A >= x"2000" and A <= x"3FFF" and Wr_n = '0' and MReq_n = '0');
+	vram_addra <= VID_CURSOR when (IORQ_n = '0' and MREQ_n = '1' and A(7 downto 0) = x"90")  else
+	              A - x"4000" when (A >= x"4000" and A <= x"5FFF");
+	vram_wea <= '0' when ((A >= x"4000" and A <= x"5FFF" and Wr_n = '0' and MReq_n = '0') or (Wr_n = '0' and IORQ_n = '0' and A(7 downto 0) = x"90")) else 
+             	'1';
+	vram_dina <= DO_CPU; -- when (A >= x"4000" and A <= x"5FFF" and Wr_n = '0' and MReq_n = '0');
 	
 -- Write into LCD video ram
-	lcd_addra <= A - x"8000" when (A >= x"8000" and A <= x"801F" and MReq_n = '0');
-	lcd_wea <= '0' when (A >= x"8000" and A <= x"801F" and Wr_n = '0' and MReq_n = '0') else '1';
-	lcd_dina <= DO_CPU when (A >= x"8000" and A <= x"801F" and Wr_n = '0' and MReq_n = '0');
+	lcd_addra <= A - x"7FE0" when (A >= x"7FE0" and A <= x"7FFF");
+	lcd_wea <= '0' when (A >= x"7FE0" and A <= x"7FFF" and Wr_n = '0' and MReq_n = '0') else '1';
+	lcd_dina <= DO_CPU when (A >= x"7FE0" and A <= x"7FFF" and Wr_n = '0' and MReq_n = '0');
 	
 -- Write into SRAM
-	sram_addr <= A - x"4000" when (A >= x"4000" and A <= x"7FFF");
-	sram_we <= '0' when (A >= x"4000" and A <= x"7FFF" and Wr_n = '0' and MReq_n = '0') else '1';
-	sram_din <= DO_CPU when (A >= x"4000" and A <= x"7FFF" and Wr_n = '0' and MReq_n = '0');
+	sram_addr <= A - x"8000" when (A >= x"8000" and A <= x"BFFF");
+	sram_we <= '0' when (A >= x"8000" and A <= x"BFFF" and Wr_n = '0' and MReq_n = '0') else '1';
+	sram_din <= DO_CPU when (A >= x"8000" and A <= x"BFFF" and Wr_n = '0' and MReq_n = '0');
 			
-	DI_CPU <= sram_dout when (Rd_n = '0' and MReq_n = '0' and A >= x"4000" and A <= x"7FFF") else
-			D_ROM when (Rd_n = '0' and MReq_n = '0' and A <= x"1FFF") else
-			("0000" & SW) when (IORQ_n = '0' and Rd_n = '0' and A(7 downto 0) = x"20") else
-			("0000" & KEY) when (IORQ_n = '0' and Rd_n = '0' and A(7 downto 0) = x"30") else
+	DI_CPU <= ("00000" & Z80SOC_VERSION) when (Rd_n = '0' and MREQ_n = '0' and IORQ_n = '1' and A = x"7FDD") else
+			Z80SOC_STACK(7 downto 0) when (Rd_n = '0' and MREQ_n = '0' and IORQ_n = '1' and A = x"7FDE") else
+			Z80SOC_STACK(15 downto 8) when (Rd_n = '0' and MREQ_n = '0' and IORQ_n = '1' and A = x"7FDF") else
+			vram_douta when (MREQ_n = '0' and IORQ_n = '1' and Rd_n = '0' and A >= x"4000" and A <= x"5FFF") else
+		   sram_dout when (Rd_n = '0' and MREQ_n = '0' and IORQ_n = '1' and A >= x"8000" and A <= x"BFFF") else
+			D_ROM when (Rd_n = '0' and MREQ_n = '0' and IORQ_n = '1' and A < x"4000") else
+			("0000" & SW) when (IORQ_n = '0' and MREQ_n = '1' and Rd_n = '0' and A(7 downto 0) = x"20") else
+			("0000" & KEY) when (IORQ_n = '0' and MREQ_n = '1' and Rd_n = '0' and A(7 downto 0) = x"30") else
 			("000000" & rot_dir) when (IORQ_n = '0' and Rd_n = '0' and A(7 downto 0) = x"70") else
-			ps2_ascii_reg when (IORQ_n = '0' and Rd_n = '0' and A(7 downto 0) = x"80") else
+			ps2_ascii_reg when (IORQ_n = '0' and MREQ_n = '1' and Rd_n = '0' and A(7 downto 0) = x"80") else
+			("00" & CURSOR_X) when (IORQ_n = '0' and MREQ_n = '1' and Rd_n = '0' and A(7 downto 0) = x"91") else
+			("000" & CURSOR_Y) when (IORQ_n = '0' and MREQ_n = '1' and Rd_n = '0' and A(7 downto 0) = x"92") else
 			"ZZZZZZZZ";
 	
+	-- Process to latch leds and hex displays
+	pinout_process: process(Clk_Z80)
+	variable LEDG_sig		: std_logic_vector(7 downto 0);
+	begin	
+		if Clk_Z80'event and Clk_Z80 = '1' then
+		  if IORQ_n = '0' and Wr_n = '0' then
+			-- LEDG
+			if A(7 downto 0) = x"01" then
+				LEDG_sig := DO_CPU;
+			end if;
+		  end if;
+		end if;	
+		-- Latches the signals
+		LEDG <= LEDG_sig;
+	end process;
+	
+	cursorxy: process (Clk_Z80)
+	variable VID_X	: std_logic_vector(5 downto 0);
+	variable VID_Y	: std_logic_vector(4 downto 0);
+	begin
+		if Clk_Z80'event and Clk_Z80 = '1' then
+			if (IORQ_n = '0' and MREQ_n = '1' and Wr_n = '0' and A(7 downto 0) = x"91") then
+				VID_X := DO_CPU(5 downto 0);
+			elsif (IORQ_n = '0' and MREQ_n = '1' and Wr_n = '0' and A(7 downto 0) = x"92") then
+				VID_Y := DO_CPU(4 downto 0);
+			elsif (IORQ_n = '0' and MREQ_n = '1' and Wr_n = '0' and A(7 downto 0) = x"90") then
+				if VID_X = "100111" then
+					VID_X := "000000";
+					if VID_Y = "11101" then
+						VID_Y := "00000";
+					else
+						VID_Y := VID_Y + 1;
+					end if;
+				else
+					VID_X := VID_X + 1;
+				end if;
+			end if;
+		end if;
+		VID_CURSOR <= x"4000" + ( VID_X + ( VID_Y * "0101000"));
+		CURSOR_X <= VID_X;
+		CURSOR_Y <= VID_Y;
+	end process;
+
 	-- the following three processes deals with different clock domain signals
 	ps2_process1: process(CLOCK_50)
 	begin
@@ -323,6 +398,7 @@ begin
 	end process;
 	
 	ps2_process2: process(Clk_Z80)
+	variable stack	: std_logic_vector(15 downto 0):=x"7FDE";
 	begin
 		if Clk_Z80'event and Clk_Z80 = '1' then
 			ps2_ascii_reg <= ps2_ascii_reg1;
@@ -358,19 +434,6 @@ begin
 			DI => DI_CPU,
 			DO => DO_CPU
 		);
-		
-	video_inst: video port map (
-			CLOCK_25			=> clk25mhz,
-			VRAM_DATA		=> vram_doutb,
-			VRAM_ADDR		=> vram_addrb(12 downto 0),
-			VRAM_CLOCK		=> vram_clkb,
-			VRAM_WREN		=> vram_web,
-			VGA_R				=> VGA_R,
-			VGA_G				=> VGA_G,
-			VGA_B				=> VGA_B,
-			VGA_HS			=> VGA_HS,
-			VGA_VS			=> VGA_VS
-	);
 			
 	ps2_kbd_inst : ps2kbd PORT MAP (
 		keyboard_clk	=> PS2_CLK,
@@ -424,17 +487,34 @@ begin
 	rom_inst: rom
 		port map (
 			Clk => Clk_Z80,
-			A	=> A(11 downto 0),
+			A	=> A(13 downto 0),
 			D 	=> D_ROM
 		);
+
+		
+	video_inst: video port map (
+			CLOCK_25			=> clk25mhz,
+			VRAM_DATA		=> vram_doutb,
+			VRAM_ADDR		=> vram_addrb(12 downto 0),
+			VRAM_CLOCK		=> vram_clkb,
+			VRAM_WREN		=> vram_web,
+			VGA_R				=> VGA_R,
+			VGA_G				=> VGA_G,
+			VGA_B				=> VGA_B,
+			VGA_HS			=> VGA_HS,
+			VGA_VS			=> VGA_VS
+	);
 	
-	vram_inst: vram port map (
+	vram8k_inst: vram8k port map (
 		clka 		=> Clk_Z80,
 		clkb		=> vram_clkb,
       wea    	=> vram_wea,
+		web    	=> vram_web,
       addra		=> vram_addra(12 downto 0),
       addrb		=> vram_addrb(12 downto 0),
       dina   	=> vram_dina,
+      dinb   	=> vram_dinb,
+		douta		=> vram_douta,
 		doutb		=> vram_doutb
 	);
 

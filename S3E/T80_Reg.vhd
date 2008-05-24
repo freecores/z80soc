@@ -1,6 +1,6 @@
 --
 -- T80 Registers, technology independent
--- 
+--  
 -- Version : 0244
 --
 -- Copyright (c) 2002 Daniel Wallner (jesus@opencores.org)

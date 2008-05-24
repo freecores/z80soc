@@ -1,6 +1,6 @@
 -- ****
 -- T80(b) core. In an effort to merge and maintain bug fixes ....
---
+-- 
 --
 -- Ver 300 started tidyup
 -- MikeJ March 2005

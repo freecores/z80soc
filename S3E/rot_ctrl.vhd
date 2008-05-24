@@ -69,7 +69,7 @@ SIGNAL rotary_q2			: std_logic;
 SIGNAL delay_rotary_q1	: std_logic;
 SIGNAL rotary_event		: std_logic;
 SIGNAL rotary_left		: std_logic;
-SIGNAL counter				: std_logic_vector(22 downto 0);
+SIGNAL counter				: std_logic_vector(21 downto 0);
 
 BEGIN
 --
@@ -81,15 +81,15 @@ BEGIN
 			if rotary_event='1' then
 				if rotary_left='1' then 
 					DIRECTION <= "10"; -- Rotating to the left
-					counter <= "00000000000000000000000";
+					counter <= "0000000000000000000000";
 				else
 					DIRECTION <= "01"; -- Rotating to the right
-					counter <= "00000000000000000000000";
+					counter <= "0000000000000000000000";
 				end if;
 			else
-				if counter = "11111111111111111111111" then
+				if counter = "1111111111111111111111" then
 					DIRECTION <= "00"; 
-					counter <= "00000000000000000000000";
+					counter <= "0000000000000000000000";
 				else
 					counter <= counter + 1;
 				end if;

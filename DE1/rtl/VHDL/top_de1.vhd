@@ -363,7 +363,7 @@ begin
 			Z80SOC_STACK(7 downto 0) when (Rd_n = '0' and MREQ_n = '0' and IORQ_n = '1' and A = x"7FDE") else
 			Z80SOC_STACK(15 downto 8) when (Rd_n = '0' and MREQ_n = '0' and IORQ_n = '1' and A = x"7FDF") else
 			vram_douta when (MREQ_n = '0' and IORQ_n = '1' and Rd_n = '0' and A >= x"4000" and A <= x"5FFF") else
-	        SRAM_DQ(7 downto 0) when (Rd_n = '0' and MREQ_n = '0' and IORQ_n = '1' and A >= x"8000") else
+			SRAM_DQ(7 downto 0) when (Rd_n = '0' and MREQ_n = '0' and IORQ_n = '1' and A >= x"8000") else
 			D_ROM when (Rd_n = '0' and MREQ_n = '0' and IORQ_n = '1' and A < x"4000") else
 			SW(7 downto 0) when (IORQ_n = '0' and MREQ_n = '1' and Rd_n = '0' and A(7 downto 0) = x"20") else
 			("0000" & not KEY) when (IORQ_n = '0' and MREQ_n = '1' and Rd_n = '0' and A(7 downto 0) = x"30") else

@@ -23,11 +23,11 @@
 --     appliances, devices, or systems. Use in such applications are          --
 --     expressly prohibited.                                                  --
 --                                                                            --
---     (c) Copyright 1995-2006 Xilinx, Inc.                                   --
+--     (c) Copyright 1995-2007 Xilinx, Inc.                                   --
 --     All rights reserved.                                                   --
 --------------------------------------------------------------------------------
--- You must compile the wrapper file vram.vhd when simulating
--- the core, vram. When compiling the wrapper file, be sure to
+-- You must compile the wrapper file vram8k.vhd when simulating
+-- the core, vram8k. When compiling the wrapper file, be sure to
 -- reference the XilinxCoreLib VHDL simulation library. For detailed
 -- instructions, please refer to the "CORE Generator Help".
 
@@ -40,32 +40,38 @@ USE ieee.std_logic_1164.ALL;
 -- synthesis translate_off
 Library XilinxCoreLib;
 -- synthesis translate_on
-ENTITY vram IS
+ENTITY vram8k IS
 	port (
-	addra: IN std_logic_VECTOR(10 downto 0);
-	addrb: IN std_logic_VECTOR(10 downto 0);
+	addra: IN std_logic_VECTOR(12 downto 0);
+	addrb: IN std_logic_VECTOR(12 downto 0);
 	clka: IN std_logic;
 	clkb: IN std_logic;
 	dina: IN std_logic_VECTOR(7 downto 0);
+	dinb: IN std_logic_VECTOR(7 downto 0);
+	douta: OUT std_logic_VECTOR(7 downto 0);
 	doutb: OUT std_logic_VECTOR(7 downto 0);
-	wea: IN std_logic);
-END vram;
+	wea: IN std_logic;
+	web: IN std_logic);
+END vram8k;
 
-ARCHITECTURE vram_a OF vram IS
+ARCHITECTURE vram8k_a OF vram8k IS
 -- synthesis translate_off
-component wrapped_vram
+component wrapped_vram8k
 	port (
-	addra: IN std_logic_VECTOR(10 downto 0);
-	addrb: IN std_logic_VECTOR(10 downto 0);
+	addra: IN std_logic_VECTOR(12 downto 0);
+	addrb: IN std_logic_VECTOR(12 downto 0);
 	clka: IN std_logic;
 	clkb: IN std_logic;
 	dina: IN std_logic_VECTOR(7 downto 0);
+	dinb: IN std_logic_VECTOR(7 downto 0);
+	douta: OUT std_logic_VECTOR(7 downto 0);
 	doutb: OUT std_logic_VECTOR(7 downto 0);
-	wea: IN std_logic);
+	wea: IN std_logic;
+	web: IN std_logic);
 end component;
 
 -- Configuration specification 
-	for all : wrapped_vram use entity XilinxCoreLib.blkmemdp_v6_3(behavioral)
+	for all : wrapped_vram8k use entity XilinxCoreLib.blkmemdp_v6_3(behavioral)
 		generic map(
 			c_reg_inputsb => 0,
 			c_reg_inputsa => 0,
@@ -85,13 +91,13 @@ end component;
 			c_sinita_value => "0",
 			c_sinitb_value => "0",
 			c_limit_data_pitch => 18,
-			c_write_modeb => 2,
-			c_write_modea => 2,
+			c_write_modeb => 1,
+			c_write_modea => 1,
 			c_has_rdyb => 0,
 			c_yuse_single_primitive => 0,
 			c_has_rdya => 0,
-			c_addra_width => 11,
-			c_addrb_width => 11,
+			c_addra_width => 13,
+			c_addrb_width => 13,
 			c_has_limit_data_pitch => 0,
 			c_default_data => "20",
 			c_pipe_stages_b => 0,
@@ -102,36 +108,39 @@ end component;
 			c_yydisable_warnings => 1,
 			c_enable_rlocs => 0,
 			c_ysinitb_is_high => 1,
-			c_has_web => 0,
+			c_has_web => 1,
 			c_has_default_data => 1,
 			c_has_sinitb => 0,
 			c_has_wea => 1,
 			c_has_sinita => 0,
-			c_has_dinb => 0,
+			c_has_dinb => 1,
 			c_has_dina => 1,
 			c_ymake_bmm => 0,
 			c_sim_collision_check => "NONE",
 			c_has_enb => 0,
 			c_has_ena => 0,
-			c_depth_b => 2048,
+			c_depth_b => 8192,
 			c_mem_init_file => "mif_file_16_1",
-			c_depth_a => 2048,
+			c_depth_a => 8192,
 			c_has_doutb => 1,
-			c_has_douta => 0,
+			c_has_douta => 1,
 			c_yprimitive_type => "16kx1");
 -- synthesis translate_on
 BEGIN
 -- synthesis translate_off
-U0 : wrapped_vram
+U0 : wrapped_vram8k
 		port map (
 			addra => addra,
 			addrb => addrb,
 			clka => clka,
 			clkb => clkb,
 			dina => dina,
+			dinb => dinb,
+			douta => douta,
 			doutb => doutb,
-			wea => wea);
+			wea => wea,
+			web => web);
 -- synthesis translate_on
 
-END vram_a;
+END vram8k_a;
 
