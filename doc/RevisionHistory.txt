@@ -1,3 +1,12 @@
+2008/05/24 - Modified RAM layout to support new and future improvements
+           - Added port 0x90 to write a character to video.
+           - Cursor x,y automatically updated after writing to port 0x90
+           - Added port 0x91 for video cursor X
+           - Added port 0x92 for video cursor Y
+           - Added suport for reading VRAM (dual port, dual clock vram)
+           - Updated ROM to demonstrate how to use these new resources
+           - Changed ROM to support 14 bit addresses (16 Kb)
+
 2008/05/14 - Implemented small changes in Rotary knob logic.
            - Modified ROM to demonstrate rotary function.
 

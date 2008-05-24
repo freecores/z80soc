@@ -7,36 +7,27 @@ ROT_CENTER push button (Knob) - Reserved - Reset
 
 Memory
 ------
-0000H - 01FFH - ROM		(0 	- 8191)
-2000H - 3FFFH - VIDEO RAM	(8192 - 16383)
-4000H - 7FFFH - RAM memory      (16384 - 32767)
-8000H - 801FH - LCD Video RAM   (32768 - 32769)
+0000H - 3FFFH - ROM		(0 	- 16383)
+4000H - 5FFFH - VIDEO RAM	(16384 	- 24575)
+7FE0H - 7FFFH - LCD Video RAM   (32736 	- 32767)
+8000H - BFFFH - RAM memory      (32768 	- 49151)
 
-IO
---
+Registers
+---------
+7FDDH         - Z80SOC VERSION  (0 = DE1, 1 = S3E)
+7FDEH - 7FDFH - STACK ADDRESS   (should be loaded with "ld sp,(7FDEh)" in the beginning of program
 
-Output Ports
-------------
-01H	- Green Leds (7-0)
+IO (Ports)
+----------
 
-Inputs
-------
-
-Switches
---------
-20H	- SW(3-0)
-
-Push Buttons
-------------
-30H	- KEY(3-0)
-
-Rotary Knob
------------
-70H	- Rotary control direction 
-
-Keyboard
---------
-80H	- Read Keyboard Ascii code
+01H	- Out 	- Green Leds (7-0)
+20H	- In	- SW(3-0)
+30H	- In	- KEY(3-0)
+70H	- In	- Rotary control direction 
+80H	- In	- PS/2 Keyboard
+90H	- Out 	- Video
+91H	- Out 	- Video cursor X
+92H	- Out 	- Video cursor Y
 
 --
 
@@ -52,7 +43,7 @@ The program will show how to use:
 	Input push buttons
 	Input Switches
 	PS/2 keyboard
-	Video text out
+	Video text out (memory mapped and port mapped)
 	Leds
 	LCD
 	Rotary Knob
@@ -70,7 +61,10 @@ When you change these switches, it will only take effect after a Z80 reset (pres
 
 The Rotary knob can be used at any time to rotate the text in the LCD to the left or to the right.
 
-To reset the Z80, use Key West (left push button).
+The looping text inside the box demonstrates how to access the video ram.
+To change speed of scrolling, use the switches (SW).
+
+To reset the Z80, press the Knob Button (rotary).
 
 Hope you enjoy.
 

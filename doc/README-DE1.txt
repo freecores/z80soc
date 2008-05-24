@@ -3,7 +3,6 @@ Z80 Computer on DE1 Development board
 Arquitecture
 ------------
 
-
 SW9 	- Reserved - Reset
 SW8 	- Reserved
 LEDR9 	- Reserved
@@ -11,41 +10,32 @@ LEDR8 	- Reserved
 
 Memory
 ------
-0000H - 01FFH - ROM		(0 	- 8191)
-2000H - 3FFFH - VIDEO RAM	(8192  	- 16383)
-4000H - FFFFH - RAM		(16384 	- 65535)
+0000H - 3FFFH - ROM		(0 	- 16383)
+4000H - 5FFFH - VIDEO RAM	(16384 	- 24575)
+8000H - FFFFH - RAM memory      (32768 	- 65535)
 
-IO
---
+Registers
+---------
+7FDDH         - Z80SOC VERSION  (0 = DE1, 1 = S3E)
+7FDEH - 7FDFH - STACK ADDRESS   (should be loaded with "ld sp,(7FDEh)" in the beginning of program
 
-Output Ports
-------------
-01H	- Green Leds (7-0)
-02H	- Red Leds (7-0)
+IO (Ports)
+----------
 
-10H	- HEX1 - HEX0
-11H	- HEX3 - HEX2
+01H	- Out 	- Green Leds (7-0)
+02H	- Out 	- Red Leds (7-0)
 
+10H	- Out 	- HEX1 - HEX0
+11H	- Out 	- HEX3 - HEX2
+20H	- In	- SW(7-0)
+30H	- In	- KEY(3-0)
+80H	- In	- PS/2 keyboard
+90H	- Out	- Video
+91H	- InOut	- Video cursor X
+92H	- InOut	- Video cursor Y
 
-
-Inputs
-------
-20H	- SW(7-0)
-
-30H	- KEY(3-0)
-
-Video
------
-2000h	- 1FFFH		Video RAM Memory
-2000h	- 24B0H		Text Video memory
-
-Keyboard
---------
-80H	- Read Keyboard Ascii code
-
-Input/Output
-------------
-
+GPIO Expansion pins
+-------------------
 All write operations to GPIO are buffered.
 To write the buffered signals to the pins, the Z80 must
 write any value to port C0 (GPIO0) or C1 (GPIO1)
@@ -80,7 +70,7 @@ The program will show how to use:
 	Input push buttons
 	Input Switches
 	PS/2 keyboard
-	Video text out
+	Video text out (memory mapped and port mapped io)
 	Leds
 	7seg display
 
@@ -98,12 +88,14 @@ changing these switches to speed up ou slow down the leds. It only
 takes effect after a Z80 reset. 
 To reset the Z80, use SW9.
 
+The looping text inside the box demonstrates how to access the video ram.
+To change speed of scrolling, use the switches (SW).
+
 Hope you enjoy.
 
 TO-DO:
 ----
 
-- Expand the character sets (this versions have only uppercase letters and numbers)
 - 80x40 Video display
 - Serial communication
 - Monitor program to allow download of programs by serial communication
