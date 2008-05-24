@@ -46,14 +46,14 @@ loopprint:
            push        de
            call        delay
            call        rotate
-           ld          a,(7FDDH)           ; get z80soc version
+           ld          a,(7FDDH)
            or          a
            jr          z,looppr2
            call        s3e_routine       ; Is Z80-S3E
 looppr2:
-           call        read_kbd
            pop         de
            pop         bc
+           call        read_kbd
            or          a
            jr          z,loopprint
            cp          41h
@@ -66,6 +66,7 @@ looppr2:
            ld          a,l
            out         (11h),a             ; Use HEX display if DE1
 looppr3:
+           ld          a,l
            ld          (de),a
            inc         de
            dec         bc
@@ -103,7 +104,7 @@ skip2_de1:
            call        delay              ; Call sub-routine to delay some time
            inc         hl                 ; Add 1 to the memory location
            ld          a,(hl)             ; Read the value in the memory
-           cp          0FFh               ; check if equal 255
+           cp          FFh               ; check if equal 255
            jr          nz,skip2_de1       ; If not equal 255, continue loop2
            ; end of First execution
            call         read_key0       ; Wait until KEY0 is pressed
@@ -125,10 +126,10 @@ loop4:
            jr           nz,loop4          ; If A greather than 0, continue loop
            ret                  ; return to calling program
 delay:
-           in a,(20h)           ; Read SW(7-0)
-           or a
-           jr nz,loop5
-           ld a,1
+           in           a,(20h)           ; Read SW(7-0)
+           or           a
+           jr           nz,loop5
+           ld           a,1
 loop5:
            push  af
            ld    bc,5000             ; Every delay has at least 255 loops
@@ -147,7 +148,7 @@ clear:
         out     (92h),a      ; video cursor y = 0
         ld      bc,1200
 clean_loop:
-        ld      a,20h
+        ld      a,2Eh
         out     (90h),a      ; print character to video
                              ; cursor x,y is automatically updated
                              ; by hardware
@@ -168,7 +169,7 @@ ploop:
            inc         de
            jr          ploop
 read_kbd:
-           in     a,(80h)
+           in          a,(80h)
            ret
 Border:
            ld          hl,Lineu
@@ -197,7 +198,7 @@ brdloop:
 rotate:
            ; save first line of box
            ld          hl,411Eh
-           ld          de,9000h
+           ld          de,B000h
            ld          bc,30
            ldir
            ; move all lines up
@@ -222,13 +223,11 @@ loop_rotate:
            djnz        loop_rotate
            ; now get back the first line saved in 9000h
            ; and put on the last line of box
-           ld          hl,9000h
+           ld          hl,B000h
            ld          bc,30
            ldir
            ret
 s3e_routine:
-           push        bc
-           push        de
            ; print message in LCD display
            ; Check of Rotary Knob is moving
            call        read_rot
@@ -251,8 +250,6 @@ printlcd:
            ld          hl,9100h
            call        printmsg
 dec_jump:
-           pop         de
-           pop         bc
            ret
 set_lcd:
            ld          de,9100h
@@ -263,56 +260,56 @@ set_lcd:
            ld          hl,9100h
            ld          bc,32
            ldir
-	   ret
+	     ret
 read_rot:
-           CALL        DELAY_MULT
-           LD          A,0
-           RET         NZ
+           ;CALL        DELAY_MULT
+           ;LD          A,0
+           ;RET         NZ
            IN          A,(70H)
            RET
 
 DELAY_ROT:
-           LD          A,(9000H)
+           LD          A,(9200H)
            DEC         A
-           LD          (9000H),A
+           LD          (9200H),A
            RET
 DELAY_MULT:
-           LD          A,(9001H)
+           LD          A,(9201H)
            DEC         A
            JR          NZ,DLY_M1
            LD          A,10H
 DLY_M1:
-           LD          (9001H),A
+           LD          (9201H),A
            RET
 
 roll_lcd_left:
            ; save the first char on the left, for every line
            ld        a,(9100h)
-           ld        (9002H),a
+           ld        (9202H),a
            ld        a,(9110h)
-           ld        (9003H),a
+           ld        (9203H),a
            ld        HL,9101H
            ld        de,9100h
            ld        bc,31
            ldir
-           ld        a,(9002h)
+           ld        a,(9202h)
            ld        (910Fh),a
-           ld        a,(9003h)
+           ld        a,(9203h)
            ld        (911Fh),a
            ret
 roll_lcd_right:
            ; save the first char on the left, for every line
            ld        a,(910Fh)
-           ld        (9002H),a
+           ld        (9202H),a
            ld        a,(911Fh)
-           ld        (9003H),a
+           ld        (9203H),a
            ld        HL,911EH
            ld        de,911Fh
            ld        bc,31
            lddr
-           ld        a,(9002h)
+           ld        a,(9202h)
            ld        (9100h),a
-           ld        a,(9003h)
+           ld        a,(9203h)
            ld        (9110h),a
            ret
 Text1:
