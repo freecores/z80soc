@@ -5,7 +5,7 @@ use  IEEE.STD_LOGIC_UNSIGNED.all;
 -- Module Generates Video Sync Signals for Video Montor Interface
 -- RGB and Sync outputs tie directly to monitor conector pins
 ENTITY VGA_SYNC IS
-	PORT(	clock_50Mhz							: IN 	STD_LOGIC;
+	PORT(	clock_25Mhz							: IN 	STD_LOGIC;
 			red, green, blue					: IN	STD_LOGIC_VECTOR(3 DOWNTO 0);
 			red_out, green_out, blue_out		: OUT	STD_LOGIC_VECTOR(3 DOWNTO 0);
 			horiz_sync_out, vert_sync_out, 
@@ -13,7 +13,7 @@ ENTITY VGA_SYNC IS
 			pixel_row, pixel_column				: OUT 	STD_LOGIC_VECTOR(9 DOWNTO 0));
 END VGA_SYNC;
 ARCHITECTURE a OF VGA_SYNC IS
-	SIGNAL horiz_sync, vert_sync, pixel_clock_int : STD_LOGIC;
+	SIGNAL horiz_sync, vert_sync : STD_LOGIC;
 	SIGNAL video_on_int, video_on_v, video_on_h : STD_LOGIC;
 	SIGNAL h_count, v_count :STD_LOGIC_VECTOR(9 DOWNTO 0);
 --
@@ -32,33 +32,19 @@ ARCHITECTURE a OF VGA_SYNC IS
 	CONSTANT V_sync_low: 		Natural := 491;
 	CONSTANT V_sync_high: 		Natural := 493;
 	CONSTANT V_end_count: 		Natural := 525;
-	COMPONENT video_PLL
-	PORT
-	(
-		inclk0		: IN STD_LOGIC  := '0';
-		c0			: OUT STD_LOGIC 
-	);
-end component;
-
+	
 BEGIN
-
--- PLL below is used to generate the pixel clock frequency
--- Uses DE1 50Mhz clock for PLL's input clock
-video_PLL_inst : video_PLL PORT MAP (
-		inclk0	 => Clock_50Mhz,
-		c0	 => pixel_clock_int
-	);
 
 -- video_on is high only when RGB pixel data is being displayed
 -- used to blank color signals at screen edges during retrace
 video_on_int <= video_on_H AND video_on_V;
 -- output pixel clock and video on for external user logic
-pixel_clock <= pixel_clock_int;
+pixel_clock <= clock_25Mhz;
 video_on <= video_on_int;
 
 PROCESS
 BEGIN
-	WAIT UNTIL(pixel_clock_int'EVENT) AND (pixel_clock_int='1');
+	WAIT UNTIL(clock_25Mhz'EVENT) AND (clock_25Mhz='1');
 
 --Generate Horizontal and Vertical Timing Signals for Video Signal
 -- H_count counts pixels (#pixels across + extra time for sync signals)

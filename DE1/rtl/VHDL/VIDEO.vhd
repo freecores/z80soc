@@ -8,8 +8,8 @@ use IEEE.numeric_std.all;
 --use IEEE.math_complex.all;
 
 
-ENTITY video_80x40 is
-	PORT(	CLOCK_50		: IN STD_LOGIC;
+ENTITY video is
+	PORT(	CLOCK_25		: IN STD_LOGIC;
 			VRAM_DATA		: IN STD_LOGIC_VECTOR(7 DOWNTO 0);
 			VRAM_ADDR		: OUT STD_LOGIC_VECTOR(12 DOWNTO 0);
 			VRAM_CLOCK		: OUT STD_LOGIC;
@@ -19,9 +19,9 @@ ENTITY video_80x40 is
 			VGA_B			: OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
 			VGA_HS,
 			VGA_VS			: OUT STD_LOGIC);
-END video_80x40;
+END video;
 
-ARCHITECTURE A OF video_80x40 IS
+ARCHITECTURE A OF video IS
 
 	-- Added for VDU support
 	signal Clock_video		: std_logic;
@@ -43,7 +43,7 @@ BEGIN
 	VGA_G_sig <= "0000";
 	VGA_B_sig <= pixel_sig & pixel_sig & pixel_sig & pixel_sig;
 	
-	VRAM_WREN <= video_on_sig;
+	VRAM_WREN <= '1';
 	VRAM_CLOCK <= pixel_clock_sig;
 	VRAM_ADDR <= (pixel_row_sig(9 downto 4) * "0101000" + pixel_column_sig(9 downto 4));
 	
@@ -54,7 +54,7 @@ BEGIN
 	
 	vga_sync_inst : work.vga_sync 
 		port map (
-			clock_50Mhz			=> CLOCK_50,
+			clock_25Mhz			=> CLOCK_25,
 			red					=> VGA_R_sig,
 			green				=> VGA_G_sig,
 			blue				=> VGA_B_sig,
