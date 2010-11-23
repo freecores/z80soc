@@ -1,0 +1,42 @@
+Welcome to Xilinx CORE Generator.
+Help system initialized.
+Wrote file for project 'rom'.
+Wrote file for project 'rom'.
+Customize and Generate
+Customizing IP...
+Release 12.3 - Xilinx CORE Generator IP GUI Launcher M.70d (nt)
+Copyright (c) 1995-2010 Xilinx, Inc.  All rights reserved.
+Initializing IP model...
+Finished initialising IP model.
+Finished Customizing.
+Generating IP...
+XST: HDL Compilation
+XST: Design Hierarchy Analysis
+XST: HDL Analysis
+XST: HDL Synthesis
+XST: Advanced HDL Synthesis
+XST: Low Level Synthesis
+Generating Implementation files.
+Generating NGC file.
+Finished Generation Stage.
+Generating IP instantiation template...
+Generating the VHDL instantiation template.
+Finished generating IP instantiation template.
+Generating metadata file...
+Finished generating metadata file.
+Generating metadata file...
+Finished generating metadata file.
+Generating ISE file...
+Finished ISE file generation.
+Generating FLIST file...
+Finished FLIST file generation.
+Preparing output directory...
+Finished preparing output directory.
+Launching readme viewer...
+Launched readme viewer.
+Moving files to output directory...
+Finished moving files to output directory
+Saved options for project 'rom'.
+View Readme File
+Launching readme viewer...
+Launched readme viewer.
